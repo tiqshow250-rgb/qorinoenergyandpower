@@ -1,0 +1,2722 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Qorino Energy — RGB Operating Layer for 13 Energy Sectors</title>
+<meta name="description" content="Qorino Energy maps 104 problems across 13 energy sectors into one connected, live operating layer." />
+<meta name="theme-color" content="#04070a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2304070a'/%3E%3Cpath d='M32 7 53 19v26L32 57 11 45V19z' fill='none' stroke='%232ee6a8' stroke-width='2.6'/%3E%3Ccircle cx='32' cy='32' r='11' fill='none' stroke='%2335c5f0' stroke-width='3.4' stroke-dasharray='50 20'/%3E%3Cpath d='M40 40l9 9' stroke='%23ffc857' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M34 22 26 34h6l-2 8 9-13h-6z' fill='%232ee6a8'/%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --bg:#04070a;
+  --panel:rgba(11,18,23,.82);
+  --panel-2:rgba(9,15,19,.92);
+  --line:rgba(255,255,255,.09);
+  --line-strong:rgba(255,255,255,.17);
+  --text:#eaf2f5;
+  --muted:#8fa3a8;
+  --brand1:#2ee6a8;
+  --brand2:#35c5f0;
+  --radius:18px;
+  --max:1200px;
+
+  /* RGB keyboard gradients (overridden by body classes) */
+  --rgb: linear-gradient(90deg,#ff2d75,#ff9f1c,#ffe600,#2ee6a8,#35c5f0,#a855f7,#ff2d75);
+  --rgb-soft: linear-gradient(90deg,#9fe8d0,#8fd8f0,#b3a8f0,#f0c88f,#a8f0d8,#9fe8d0);
+}
+body.rgb-subtle{
+  --rgb: linear-gradient(90deg,#6fd8b4,#6fc4e0,#9b90e0,#e0b878,#6fd8b4);
+  --rgb-soft: linear-gradient(90deg,#a9d8c8,#a8c9dd,#c0b6e4,#dcc8a8,#a9d8c8);
+}
+body.rgb-off{
+  --rgb: linear-gradient(90deg,#2ee6a8,#35c5f0,#2ee6a8);
+  --rgb-soft: linear-gradient(90deg,#9fb3ae,#9fb3ae,#9fb3ae);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.65;
+  overflow-x:hidden;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+h1,h2,h3,h4,h5{font-family:'Sora',Inter,sans-serif;line-height:1.14;margin:0;letter-spacing:-.02em}
+p{margin:0}
+
+.container{width:100%;max-width:var(--max);margin:0 auto;padding:0 22px}
+
+/* ============================================================
+   RGB ANIMATIONS
+   ============================================================ */
+@keyframes rgbShift{
+  from{background-position:0% 50%}
+  to{background-position:400% 50%}
+}
+.rgb-text{
+  background-image:var(--rgb);
+  background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 8s linear infinite;
+}
+.rgb-soft{
+  background-image:var(--rgb-soft);
+  background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 18s linear infinite;
+}
+body.rgb-subtle .rgb-text{animation-duration:18s}
+body.rgb-subtle .rgb-soft{animation-duration:30s}
+body.rgb-off .rgb-text,body.rgb-off .rgb-soft{animation:none}
+body.rgb-off .rgb-soft{-webkit-text-fill-color:var(--muted);color:var(--muted)}
+
+/* Body copy gets the soft RGB treatment */
+p,.lede,.muted-text,.stat .lbl,.field label,.foot-note,.panel-foot,.kpi-label{
+  background-image:var(--rgb-soft);
+  background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 20s linear infinite;
+}
+body.rgb-off p,body.rgb-off .lede{ -webkit-text-fill-color:var(--muted); color:var(--muted); }
+
+::selection{background:rgba(46,230,168,.35);color:#04070a}
+
+/* ============================================================
+   BACKGROUND LAYERS
+   ============================================================ */
+#bgCanvas{
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:-4;pointer-events:none;opacity:.9;
+}
+.bg-aurora{
+  position:fixed;inset:-20%;z-index:-3;pointer-events:none;filter:blur(90px);opacity:.55;
+}
+.bg-aurora span{
+  position:absolute;display:block;border-radius:50%;
+  animation:auroraFloat 22s ease-in-out infinite alternate;
+}
+.bg-aurora span:nth-child(1){width:46vw;height:46vw;left:-6vw;top:-8vw;background:radial-gradient(circle,rgba(46,230,168,.55),transparent 65%)}
+.bg-aurora span:nth-child(2){width:40vw;height:40vw;right:-8vw;top:-4vw;background:radial-gradient(circle,rgba(53,197,240,.5),transparent 65%);animation-delay:-7s}
+.bg-aurora span:nth-child(3){width:44vw;height:44vw;left:22vw;bottom:-18vw;background:radial-gradient(circle,rgba(168,85,247,.42),transparent 65%);animation-delay:-13s}
+.bg-aurora span:nth-child(4){width:34vw;height:34vw;right:6vw;bottom:-12vw;background:radial-gradient(circle,rgba(255,159,28,.3),transparent 65%);animation-delay:-18s}
+@keyframes auroraFloat{
+  from{transform:translate3d(0,0,0) scale(1)}
+  to{transform:translate3d(4vw,3vw,0) scale(1.15)}
+}
+.bg-grid{
+  position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(46,230,168,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(53,197,240,.06) 1px,transparent 1px);
+  background-size:66px 66px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 20%,transparent 78%);
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 20%,transparent 78%);
+  animation:gridDrift 40s linear infinite;
+}
+@keyframes gridDrift{ to{background-position:66px 66px,66px 66px} }
+.bg-vignette{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,transparent 30%,rgba(4,7,10,.75) 100%);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.site-header{
+  position:sticky;top:0;z-index:80;
+  background:rgba(4,7,10,.72);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  backdrop-filter:blur(18px) saturate(140%);
+  border-bottom:1px solid transparent;
+  transition:background .3s,border-color .3s;
+}
+.site-header.scrolled{background:rgba(4,7,10,.95);border-bottom-color:var(--line)}
+.header-inner{display:flex;align-items:center;gap:18px;height:74px}
+
+/* --- LOGO --- */
+.logo{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.logo-mark{
+  width:42px;height:42px;flex-shrink:0;
+  filter:drop-shadow(0 0 12px rgba(46,230,168,.45));
+  transition:transform .4s cubic-bezier(.16,1,.3,1);
+}
+.logo:hover .logo-mark{transform:rotate(-8deg) scale(1.06)}
+.logo-mark .orbit{transform-origin:32px 32px;animation:logoSpin 11s linear infinite}
+@keyframes logoSpin{to{transform:rotate(360deg)}}
+.logo-text{
+  font-family:'Sora',sans-serif;font-weight:800;font-size:1.02rem;letter-spacing:.02em;line-height:1.05;
+}
+.logo-text small{
+  display:block;font-family:'Inter',sans-serif;font-weight:600;font-size:.58rem;letter-spacing:.34em;
+  margin-top:3px;opacity:.8;
+}
+
+/* --- NAV --- */
+.nav{display:flex;align-items:center;gap:2px;margin-left:10px}
+.nav a{
+  font-size:.87rem;font-weight:600;padding:9px 13px;border-radius:10px;
+  transition:background .2s,transform .2s;
+}
+.nav a:hover{background:rgba(255,255,255,.05);transform:translateY(-1px)}
+.nav a.active{background:rgba(46,230,168,.1)}
+
+/* --- AUTH --- */
+.auth-area{display:flex;align-items:center;gap:9px;margin-left:auto;position:relative}
+.btn-sm{padding:9px 16px;font-size:.82rem;border-radius:10px}
+
+.user-chip{
+  display:flex;align-items:center;gap:9px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-strong);
+  border-radius:999px;padding:5px 13px 5px 5px;cursor:pointer;
+  transition:background .2s,border-color .2s;
+}
+.user-chip:hover{background:rgba(255,255,255,.08)}
+.avatar{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  font-size:.72rem;font-weight:800;color:#04070a;
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 7s linear infinite;
+}
+.user-chip .uname{font-size:.83rem;font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-chip .chev{width:12px;height:12px;color:var(--muted);transition:transform .25s}
+.user-menu{
+  position:absolute;top:calc(100% + 12px);right:0;min-width:200px;
+  background:var(--panel-2);border:1px solid var(--line-strong);border-radius:14px;
+  padding:7px;display:none;flex-direction:column;gap:2px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.9);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+}
+.user-menu.open{display:flex}
+.user-chip.open .chev{transform:rotate(180deg)}
+.user-menu a,.user-menu button{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:10px 12px;border-radius:9px;border:none;background:none;
+  color:var(--text);font-size:.85rem;font-weight:500;cursor:pointer;text-align:left;
+  transition:background .18s;
+}
+.user-menu a:hover,.user-menu button:hover{background:rgba(255,255,255,.07)}
+.user-menu svg{width:15px;height:15px;color:var(--muted)}
+.user-menu .sep{height:1px;background:var(--line);margin:5px 6px}
+
+.burger{
+  display:none;flex-direction:column;justify-content:center;gap:5px;
+  width:42px;height:42px;background:rgba(255,255,255,.04);
+  border:1px solid var(--line);border-radius:11px;cursor:pointer;padding:0 11px;
+}
+.burger span{display:block;height:2px;background:var(--text);border-radius:2px;transition:transform .28s,opacity .2s}
+.burger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.burger.open span:nth-child(2){opacity:0}
+.burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:13px 24px;border-radius:13px;border:1px solid transparent;
+  font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .3s,filter .3s;
+  position:relative;
+}
+.btn:active{transform:scale(.97)}
+.btn-rgb{
+  background-image:var(--rgb);background-size:400% 100%;
+  animation:rgbShift 6s linear infinite;
+  color:#04070a;border:none;
+  box-shadow:0 10px 32px -12px rgba(46,230,168,.7);
+}
+.btn-rgb:hover{animation-duration:1.5s;transform:translateY(-2px);box-shadow:0 16px 42px -14px rgba(53,197,240,.8)}
+.btn-line{
+  background:rgba(255,255,255,.025);color:var(--text);
+  position:relative;isolation:isolate;
+}
+.btn-line::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.4px;
+  background-image:var(--rgb);background-size:400% 100%;
+  animation:rgbShift 8s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;z-index:-1;
+}
+.btn-line:hover{background:rgba(255,255,255,.06);transform:translateY(-2px)}
+.btn-xs{padding:8px 14px;font-size:.76rem;border-radius:9px}
+.btn-block{width:100%}
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+.view{display:none;min-height:60vh}
+.view.active{display:block;animation:viewIn .5s cubic-bezier(.16,1,.3,1)}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.section{padding:80px 0}
+.section-tight{padding:56px 0}
+.section-head{max-width:760px;margin-bottom:44px}
+.eyebrow{
+  display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.17em;text-transform:uppercase;
+  margin-bottom:14px;
+}
+.section-head h2{font-size:clamp(1.6rem,3.2vw,2.5rem);font-weight:800;margin-bottom:16px}
+.section-head p{font-size:1rem}
+
+/* Reveal */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{padding:76px 0 60px;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:54px;align-items:center}
+
+.badge{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:7px 16px 7px 11px;border-radius:999px;
+  border:1px solid rgba(46,230,168,.3);background:rgba(46,230,168,.07);
+  font-size:.77rem;font-weight:700;margin-bottom:22px;
+}
+.badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--green,#2ee6a8);
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 3s linear infinite,pulse 2.2s infinite}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(46,230,168,.65)}
+  70%{box-shadow:0 0 0 11px rgba(46,230,168,0)}
+  100%{box-shadow:0 0 0 0 rgba(46,230,168,0)}
+}
+
+.hero h1{font-size:clamp(2.1rem,4.6vw,3.7rem);font-weight:800;margin-bottom:20px}
+.hero-lead{font-size:1.03rem;max-width:570px;margin-bottom:30px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:13px;margin-bottom:34px}
+
+.hero-trust{display:flex;flex-wrap:wrap;gap:30px;padding-top:24px;border-top:1px solid var(--line)}
+.trust-item strong{
+  display:block;font-family:'Sora',sans-serif;font-size:1.35rem;font-weight:800;line-height:1.1;
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 7s linear infinite;
+}
+.trust-item span{font-size:.76rem}
+
+/* Hero panel */
+.hero-panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:24px;padding:24px;
+  box-shadow:0 40px 90px -40px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative;overflow:hidden;
+}
+.hero-panel::after{
+  content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 12s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;opacity:.55;
+}
+.panel-head{display:flex;align-items:center;gap:9px;font-size:.8rem;font-weight:700;margin-bottom:18px}
+.panel-head .dot{width:8px;height:8px;border-radius:50%;background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 3s linear infinite}
+.panel-head .pill{
+  margin-left:auto;font-size:.63rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:#8ef0cc;background:rgba(46,230,168,.12);border:1px solid rgba(46,230,168,.28);
+  padding:4px 10px;border-radius:999px;
+}
+.coverage-total{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+.coverage-total strong{
+  font-family:'Sora',sans-serif;font-size:2.8rem;font-weight:800;line-height:1;
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 6s linear infinite;
+}
+.coverage-total span{font-size:.79rem;max-width:200px;line-height:1.4}
+
+.coverage-bar{display:flex;gap:3px;height:14px;margin:20px 0 14px}
+.coverage-bar .seg{
+  flex:1;border-radius:4px;opacity:0;transform:scaleY(.3);
+  transition:opacity .4s ease,transform .5s cubic-bezier(.16,1,.3,1);
+}
+.coverage-bar.ready .seg{opacity:1;transform:scaleY(1)}
+
+.coverage-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:.75rem;margin-bottom:16px}
+.coverage-legend div{display:flex;align-items:center;gap:7px}
+.coverage-legend .sw{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.panel-foot{display:flex;align-items:center;gap:8px;padding-top:15px;border-top:1px solid var(--line);font-size:.74rem}
+.panel-foot .ok{font-weight:800;background-image:var(--rgb);background-size:400% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:rgbShift 5s linear infinite}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.card{
+  position:relative;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:26px;
+  overflow:hidden;
+  transition:transform .32s cubic-bezier(.16,1,.3,1),border-color .3s,box-shadow .3s;
+}
+.card::before{
+  content:"";position:absolute;inset:0 0 auto 0;height:2px;
+  background-image:var(--rgb);background-size:400% 100%;
+  animation:rgbShift 9s linear infinite;opacity:.85;
+}
+.card:hover{transform:translateY(-6px);border-color:var(--line-strong);box-shadow:0 30px 60px -34px rgba(0,0,0,.95)}
+.card h3{font-size:1.05rem;font-weight:700;margin-bottom:10px}
+.card p{font-size:.88rem;margin-bottom:16px}
+.card-icon{
+  width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);margin-bottom:16px;
+  color:var(--brand1);
+}
+.card-icon svg{width:23px;height:23px}
+
+.list-check{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:8px}
+.list-check li{display:flex;gap:9px;font-size:.82rem;align-items:flex-start}
+.list-check .tick{
+  flex-shrink:0;font-weight:800;
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 6s linear infinite;
+}
+
+/* ============================================================
+   SECTOR GRID (Sectors page)
+   ============================================================ */
+.sector-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:18px}
+.sector-card{
+  position:relative;display:block;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px;overflow:hidden;cursor:pointer;
+  transition:transform .32s cubic-bezier(.16,1,.3,1),border-color .3s,box-shadow .3s;
+}
+.sector-card::after{
+  content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.4px;pointer-events:none;
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 10s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;
+}
+.sector-card:hover{transform:translateY(-6px);box-shadow:0 28px 56px -30px rgba(0,0,0,.95)}
+.sector-card:hover::after{opacity:.9}
+.sector-top{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.sector-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-shadow:0 0 14px currentColor}
+.sector-name{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;flex:1}
+.sector-count{
+  font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:999px;
+  background:rgba(255,255,255,.06);color:var(--text);flex-shrink:0;
+}
+.sector-card p{font-size:.82rem;margin-bottom:16px;min-height:38px}
+.sector-open{
+  display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:700;
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 7s linear infinite;
+}
+.sector-open svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;
+  -webkit-text-fill-color:initial;color:var(--brand1)}
+
+/* ============================================================
+   SECTOR WORKSPACE
+   ============================================================ */
+.crumbs{display:flex;align-items:center;gap:9px;font-size:.8rem;margin-bottom:20px;flex-wrap:wrap}
+.crumbs a{font-weight:600;background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 8s linear infinite}
+.crumbs span{opacity:.5}
+
+.workspace-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px;justify-content:space-between;margin-bottom:30px}
+.workspace-title{display:flex;align-items:center;gap:14px}
+.workspace-title .sector-dot{width:16px;height:16px}
+.workspace-title h1{font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:800}
+.workspace-head p{max-width:560px;font-size:.95rem;margin-top:8px}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}
+.kpi{
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;
+  position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background-image:var(--rgb);background-size:100% 400%;animation:rgbShift 6s linear infinite;
+}
+.kpi-label{font-size:.72rem;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:block}
+.kpi-value{
+  font-family:'Sora',sans-serif;font-size:1.75rem;font-weight:800;line-height:1;
+  font-variant-numeric:tabular-nums;display:block;
+}
+.kpi-delta{font-size:.72rem;margin-top:7px;display:block;font-weight:600}
+
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:20px;
+  padding:24px;margin-bottom:22px;
+}
+.panel-title{display:flex;align-items:center;gap:10px;font-size:.92rem;font-weight:700;margin-bottom:18px}
+.panel-title .live{
+  margin-left:auto;display:flex;align-items:center;gap:6px;
+  font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8ef0cc;
+}
+.panel-title .live i{width:7px;height:7px;border-radius:50%;background:#2ee6a8;box-shadow:0 0 10px #2ee6a8;animation:pulse 2s infinite}
+
+.live-chart{width:100%;height:180px;display:block}
+.chart-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.74rem;margin-top:12px}
+.chart-legend div{display:flex;align-items:center;gap:7px}
+.chart-legend .ln{width:18px;height:3px;border-radius:2px}
+
+/* Diagnostics console */
+.diag-list{display:grid;gap:8px}
+.diag-row{
+  background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:13px;
+  padding:13px 15px;transition:border-color .2s,background .2s;
+}
+.diag-row:hover{border-color:var(--line-strong);background:rgba(255,255,255,.04)}
+.diag-main{display:flex;align-items:center;gap:12px}
+.diag-idx{
+  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
+  font-size:.7rem;font-weight:800;color:#04070a;
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 7s linear infinite;
+}
+.diag-main strong{display:block;font-size:.88rem;font-weight:700}
+.diag-sol{display:block;font-size:.76rem;opacity:.75}
+.diag-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+.diag-status{
+  font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.06);
+}
+.diag-status[data-state="run"]{background:rgba(53,197,240,.15);color:#7fdcff}
+.diag-status[data-state="ok"]{background:rgba(46,230,168,.15);color:#7ff0cc}
+.diag-status[data-state="warn"]{background:rgba(255,159,28,.15);color:#ffcf85}
+.diag-output{
+  margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);
+  font-size:.79rem;line-height:1.55;
+}
+.diag-output b{color:#7ff0cc}
+
+/* Problem table */
+.table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line)}
+table.data{width:100%;border-collapse:collapse;min-width:560px}
+table.data th{
+  text-align:left;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;
+  padding:11px 15px;border-bottom:1px solid var(--line);font-weight:700;
+}
+table.data td{padding:13px 15px;border-bottom:1px solid var(--line);font-size:.86rem;vertical-align:top}
+table.data tr:last-child td{border-bottom:none}
+table.data tbody tr{transition:background .18s}
+table.data tbody tr:hover{background:rgba(255,255,255,.025)}
+table.data .num{font-variant-numeric:tabular-nums;font-size:.78rem;opacity:.6;width:50px}
+table.data .challenge{font-weight:600}
+table.data .solution{font-weight:600;background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 9s linear infinite}
+
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+.meta-box{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.meta-box span{display:block;font-size:.65rem;text-transform:uppercase;letter-spacing:.11em;margin-bottom:7px;font-weight:700}
+.meta-box p{font-size:.84rem;line-height:1.55}
+
+.note-box{
+  display:flex;gap:11px;align-items:flex-start;
+  background:rgba(255,200,87,.07);border:1px solid rgba(255,200,87,.24);
+  border-radius:13px;padding:14px 16px;margin-bottom:22px;
+}
+.note-box svg{width:18px;height:18px;color:#ffc857;flex-shrink:0;margin-top:2px}
+.note-box p{font-size:.82rem;line-height:1.55;-webkit-text-fill-color:#e6d3a8;color:#e6d3a8;background:none;animation:none}
+
+/* ============================================================
+   PROBLEMS PAGE
+   ============================================================ */
+.filter-bar{
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;
+}
+.search-wrap{position:relative;flex:1;min-width:220px}
+.search-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
+.search-wrap input{
+  width:100%;padding:11px 14px 11px 38px;border-radius:11px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-strong);
+  color:var(--text);font-family:inherit;font-size:.88rem;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.search-wrap input:focus{border-color:rgba(46,230,168,.55);box-shadow:0 0 0 3px rgba(46,230,168,.12)}
+.search-wrap input::placeholder{color:#5f716d}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  padding:8px 15px;border-radius:999px;font-size:.78rem;font-weight:700;cursor:pointer;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text);
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.chip:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}
+.chip.active{
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 7s linear infinite;
+  color:#04070a;border-color:transparent;
+}
+.result-count{font-size:.8rem;margin-bottom:14px;font-weight:600}
+
+.prob-row{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:15px 17px;margin-bottom:9px;
+  transition:border-color .2s,transform .2s,background .2s;
+}
+.prob-row:hover{border-color:var(--line-strong);transform:translateX(3px);background:rgba(255,255,255,.03)}
+.prob-sector{
+  display:inline-flex;align-items:center;gap:7px;font-size:.68rem;font-weight:800;
+  padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.05);
+  white-space:nowrap;flex-shrink:0;margin-top:2px;
+}
+.prob-body{flex:1;min-width:0}
+.prob-body strong{display:block;font-size:.9rem;font-weight:700;margin-bottom:3px}
+.prob-body .sol{font-size:.82rem;font-weight:600;background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 10s linear infinite}
+.prob-cat{
+  font-size:.62rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  padding:4px 9px;border-radius:6px;flex-shrink:0;margin-top:2px;
+}
+.prob-cat.op{background:rgba(255,138,92,.14);color:#ffb191}
+.prob-cat.fin{background:rgba(46,230,168,.14);color:#8ef0cc}
+.prob-cat.data{background:rgba(53,197,240,.14);color:#8fdcff}
+.prob-go{
+  flex-shrink:0;font-size:.74rem;font-weight:800;padding:7px 12px;border-radius:9px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-strong);cursor:pointer;
+  transition:background .2s;
+}
+.prob-go:hover{background:rgba(255,255,255,.1)}
+.empty-state{text-align:center;padding:50px 20px;font-size:.9rem}
+
+/* ============================================================
+   PLATFORM STEPS
+   ============================================================ */
+.step-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px}
+.step-btn{
+  text-align:left;padding:16px;border-radius:14px;cursor:pointer;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--text);
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.step-btn:hover{background:rgba(255,255,255,.06);transform:translateY(-2px)}
+.step-btn.active{border-color:transparent;background:rgba(46,230,168,.09);box-shadow:inset 0 0 0 1px rgba(46,230,168,.4)}
+.step-btn .n{font-family:'Sora',sans-serif;font-size:.7rem;font-weight:800;letter-spacing:.13em;margin-bottom:6px;
+  background-image:var(--rgb);background-size:400% 100%;-webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;animation:rgbShift 7s linear infinite}
+.step-btn .t{font-size:.86rem;font-weight:700}
+.step-panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;
+}
+.step-panel h3{font-size:1.25rem;margin-bottom:12px}
+.step-panel p{font-size:.92rem;margin-bottom:18px}
+.step-tags{display:flex;flex-wrap:wrap;gap:8px}
+.step-tags span{
+  font-size:.74rem;font-weight:600;padding:6px 12px;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);
+}
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+.form-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:22px;
+  padding:30px;max-width:560px;
+  box-shadow:0 40px 90px -44px rgba(0,0,0,.95);
+}
+.form-card.wide{max-width:none}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:.77rem;font-weight:700;margin-bottom:7px;letter-spacing:.02em}
+.field input,.field select,.field textarea{
+  width:100%;padding:12px 14px;border-radius:11px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-strong);
+  color:var(--text);font-family:inherit;font-size:.9rem;outline:none;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+  -webkit-appearance:none;appearance:none;
+}
+.field textarea{resize:vertical;min-height:96px}
+.field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238fa3a8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;
+}
+.field select option{background:#0b1217;color:var(--text)}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:rgba(46,230,168,.55);box-shadow:0 0 0 3px rgba(46,230,168,.12);background:rgba(255,255,255,.06);
+}
+.field input::placeholder,.field textarea::placeholder{color:#5f716d}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.check-row{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;margin:6px 0 18px}
+.check-row input{width:17px;height:17px;flex-shrink:0;margin-top:2px;accent-color:#2ee6a8}
+.form-msg{margin-top:14px;font-size:.84rem;font-weight:600;min-height:20px}
+.form-msg.ok{color:#7ff0cc}
+.form-msg.err{color:#ff9c9c}
+
+.auth-shell{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;padding:60px 0}
+.auth-side h2{font-size:clamp(1.7rem,3.2vw,2.4rem);margin-bottom:16px}
+.auth-side p{font-size:.95rem;margin-bottom:24px}
+
+.success-box{
+  text-align:center;padding:26px 10px;
+}
+.success-ring{
+  width:74px;height:74px;border-radius:50%;display:grid;place-items:center;margin:0 auto 20px;
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 5s linear infinite;
+}
+.success-ring svg{width:34px;height:34px;color:#04070a;stroke-width:3}
+.success-box h3{font-size:1.35rem;margin-bottom:10px}
+.success-box p{font-size:.9rem;margin-bottom:18px}
+.ref-code{
+  display:inline-block;font-family:'Sora',sans-serif;font-weight:800;font-size:1rem;letter-spacing:.08em;
+  padding:10px 18px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong);
+  margin-bottom:20px;
+}
+
+/* ============================================================
+   ACCOUNT / SETTINGS
+   ============================================================ */
+.profile-head{display:flex;align-items:center;gap:18px;margin-bottom:26px;flex-wrap:wrap}
+.profile-avatar{
+  width:74px;height:74px;border-radius:22px;display:grid;place-items:center;
+  font-family:'Sora',sans-serif;font-size:1.5rem;font-weight:800;color:#04070a;
+  background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 6s linear infinite;
+}
+.profile-head h2{font-size:1.6rem;margin-bottom:3px}
+.profile-head p{font-size:.88rem}
+
+.opt-grid{display:grid;gap:10px;margin-bottom:20px}
+.opt{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:15px 17px;border-radius:13px;cursor:pointer;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);
+  transition:background .2s,border-color .2s;
+}
+.opt:hover{background:rgba(255,255,255,.06)}
+.opt.active{border-color:rgba(46,230,168,.5);background:rgba(46,230,168,.08)}
+.opt input{margin-top:3px;accent-color:#2ee6a8;width:17px;height:17px;flex-shrink:0}
+.opt strong{display:block;font-size:.88rem;margin-bottom:2px}
+.opt span{font-size:.78rem}
+
+.switch-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:15px 17px;border-radius:13px;background:rgba(255,255,255,.03);
+  border:1px solid var(--line);margin-bottom:10px;
+}
+.switch-row strong{display:block;font-size:.88rem}
+.switch-row span{font-size:.77rem}
+.switch{
+  position:relative;width:48px;height:27px;border-radius:999px;flex-shrink:0;
+  background:rgba(255,255,255,.12);cursor:pointer;transition:background .25s;border:none;
+}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;
+  background:#fff;transition:transform .25s cubic-bezier(.16,1,.3,1);
+}
+.switch.on{background-image:var(--rgb);background-size:400% 100%;animation:rgbShift 6s linear infinite}
+.switch.on::after{transform:translateX(21px)}
+
+/* ============================================================
+   STATS STRIP
+   ============================================================ */
+.stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);border-radius:20px;overflow:hidden;
+}
+.stat{background:rgba(7,12,15,.75);padding:32px 24px;text-align:center}
+.stat .val{
+  font-family:'Sora',sans-serif;font-size:clamp(1.7rem,3vw,2.3rem);font-weight:800;
+  display:block;margin-bottom:6px;font-variant-numeric:tabular-nums;
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 7s linear infinite;
+}
+.stat .lbl{font-size:.79rem}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.site-footer{
+  border-top:1px solid var(--line);padding:56px 0 32px;margin-top:30px;
+  background:rgba(4,7,10,.6);
+}
+.footer-grid{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:36px;margin-bottom:42px}
+.footer-brand p{font-size:.85rem;margin-top:14px;max-width:300px}
+.footer-col h5{
+  font-family:'Sora',sans-serif;font-size:.74rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  margin:0 0 14px;
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 8s linear infinite;
+}
+.footer-col a,.footer-col button{
+  display:block;font-size:.84rem;margin-bottom:9px;transition:color .2s,transform .2s;
+  background:none;border:none;padding:0;text-align:left;cursor:pointer;
+}
+.footer-col a:hover,.footer-col button:hover{transform:translateX(3px);
+  background-image:var(--rgb);background-size:400% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:rgbShift 6s linear infinite}
+.footer-bottom{
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;
+  padding-top:24px;border-top:1px solid var(--line);font-size:.78rem;
+}
+.socials{display:flex;gap:8px}
+.socials button{
+  width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);cursor:pointer;
+  transition:background .2s,transform .2s;
+}
+.socials button:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+.socials svg{width:15px;height:15px;stroke:var(--text);fill:none;stroke-width:1.8}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast-wrap{
+  position:fixed;bottom:22px;right:22px;z-index:200;
+  display:flex;flex-direction:column;gap:10px;max-width:340px;
+}
+.toast{
+  background:rgba(11,18,23,.97);border:1px solid var(--line-strong);
+  border-radius:13px;padding:13px 17px;font-size:.85rem;font-weight:500;
+  box-shadow:0 20px 50px -18px rgba(0,0,0,.95);
+  display:flex;gap:10px;align-items:flex-start;
+  animation:toastIn .35s cubic-bezier(.16,1,.3,1);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+.toast::before{
+  content:"";width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;
+  background-image:var(--rgb);background-size:100% 400%;animation:rgbShift 4s linear infinite;
+}
+.toast.out{animation:toastOut .3s ease forwards}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateX(30px)}}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:1080px){
+  .footer-grid{grid-template-columns:1fr 1fr 1fr;gap:30px}
+}
+@media (max-width:980px){
+  .hero-grid{grid-template-columns:1fr;gap:42px}
+  .hero{padding:56px 0 44px}
+  .auth-shell{grid-template-columns:1fr;gap:34px;padding:40px 0}
+  .auth-side{order:2}
+}
+@media (max-width:880px){
+  .nav{
+    position:absolute;top:74px;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:2px;
+    background:rgba(5,9,12,.99);
+    border-bottom:1px solid var(--line);
+    padding:12px 22px 20px;display:none;margin-left:0;
+  }
+  .nav.open{display:flex}
+  .nav a{padding:13px 12px;font-size:.95rem}
+  .nav-auth{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding-top:14px;border-top:1px solid var(--line)}
+  .burger{display:flex;margin-left:auto}
+  .auth-area{margin-left:0}
+  .auth-area .btn-line{display:none}
+  .meta-grid{grid-template-columns:1fr}
+  .diag-row .diag-right{width:100%;margin-left:0;margin-top:10px;justify-content:flex-end}
+  .diag-main{flex-wrap:wrap}
+}
+@media (max-width:640px){
+  .section{padding:56px 0}
+  .field-row{grid-template-columns:1fr}
+  .form-card{padding:22px}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:26px}
+  .toast-wrap{left:16px;right:16px;max-width:none}
+  .prob-row{flex-wrap:wrap}
+  .prob-cat{margin-left:0}
+  .user-chip .uname{display:none}
+  .workspace-head{flex-direction:column;align-items:flex-start}
+  .hero-trust{gap:20px}
+}
+@media (max-width:420px){
+  .footer-grid{grid-template-columns:1fr}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none}
+  #bgCanvas{display:none}
+}
+</style>
+</head>
+
+<body class="rgb-full">
+
+<!-- ===== FUTURISTIC BACKGROUND LAYERS ===== -->
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
+<div class="bg-aurora" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-vignette" aria-hidden="true"></div>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="container header-inner">
+
+    <a class="logo" href="#/home" aria-label="Qorino Energy home">
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="lgA" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#2ee6a8"/>
+            <stop offset=".5" stop-color="#35c5f0"/>
+            <stop offset="1" stop-color="#a855f7"/>
+          </linearGradient>
+          <linearGradient id="lgB" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#ffc857"/>
+            <stop offset="1" stop-color="#2ee6a8"/>
+          </linearGradient>
+          <filter id="lgGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path d="M32 4.5 56 18v28L32 59.5 8 46V18Z" fill="none" stroke="url(#lgA)" stroke-width="2.1" stroke-linejoin="round" opacity=".85"/>
+        <g class="orbit">
+          <circle cx="32" cy="32" r="14.5" fill="none" stroke="url(#lgA)" stroke-width="3.4"
+                  stroke-linecap="round" stroke-dasharray="66 25"/>
+          <circle cx="32" cy="17.5" r="2.6" fill="#35c5f0"/>
+        </g>
+        <path d="M42.4 42.4 51 51" stroke="url(#lgB)" stroke-width="4.2" stroke-linecap="round"/>
+        <path d="M34.6 21.5 25.8 34.4h6.1L29.4 43 38.6 29.6h-6.2Z" fill="url(#lgB)" filter="url(#lgGlow)"/>
+      </svg>
+      <span class="logo-text rgb-text">QORINO<small>ENERGY</small></span>
+    </a>
+
+    <nav class="nav" id="mainNav">
+      <a href="#/home" data-nav="home">Home</a>
+      <a href="#/sectors" data-nav="sectors">Sectors</a>
+      <a href="#/problems" data-nav="problems">Problems</a>
+      <a href="#/platform" data-nav="platform">Platform</a>
+      <a href="#/demo" data-nav="demo">Demo</a>
+      <div class="nav-auth" id="navAuth" style="display:none"></div>
+    </nav>
+
+    <div class="auth-area" id="authArea"></div>
+
+    <button class="burger" id="burger" aria-label="Toggle menu" aria-expanded="false" aria-controls="mainNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- ===== MAIN / VIEWS ===== -->
+<main id="app">
+
+  <!-- ================= HOME ================= -->
+  <section class="view" data-view="home">
+    <div class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="badge"><span class="pulse"></span> <span class="rgb-text">13 sectors · 104 problems · live workspace</span></div>
+          <h1 class="rgb-text">One RGB operating layer for every megawatt you run.</h1>
+          <p class="hero-lead">
+            Qorino Energy turns scattered operational, financial and compliance problems into
+            live, auditable workflows — across solar, wind, hydro, nuclear, hydrogen, storage,
+            grid, climate and carbon.
+          </p>
+          <div class="hero-actions">
+            <a href="#/sectors" class="btn btn-rgb" data-nav="sectors">Explore the 13 Sectors →</a>
+            <a href="#/demo" class="btn btn-line" data-nav="demo">Request a Demo</a>
+          </div>
+          <div class="hero-trust">
+            <div class="trust-item"><strong>13</strong><span>Energy sectors</span></div>
+            <div class="trust-item"><strong>104</strong><span>Problems mapped</span></div>
+            <div class="trust-item"><strong>3</strong><span>Problem categories</span></div>
+          </div>
+        </div>
+
+        <div class="hero-panel">
+          <div class="panel-head">
+            <span class="dot"></span> Coverage map
+            <span class="pill">Live</span>
+          </div>
+          <div class="coverage-total">
+            <strong>104</strong>
+            <span>problems mapped across 13 energy sectors</span>
+          </div>
+          <div class="coverage-bar" id="coverageBar" aria-hidden="true"></div>
+          <div class="coverage-legend">
+            <div><span class="sw" style="background-image:var(--rgb)"></span> 13 / 13 sectors fully mapped</div>
+            <div><b>8</b> problems per sector</div>
+          </div>
+          <div class="panel-foot">
+            <span class="ok">✓</span> Every sector opens a live workspace
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="padding-top:20px">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">The problems we solve</span>
+          <h2 class="rgb-text">Three kinds of problems. One connected response.</h2>
+          <p>Every one of the 104 mapped challenges falls into one of three categories — and Qorino handles all three in the same live layer.</p>
+        </div>
+        <div class="card-grid">
+          <article class="card reveal">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2 3.4 19.4h17.2L12 3.2Z"/><path d="M12 9.4v4.4M12 16.6v.2"/></svg>
+            </div>
+            <h3 class="rgb-text">Operational Problems</h3>
+            <p>The plant is not generating as expected, equipment is shutting down, and maintenance costs are rising.</p>
+            <ul class="list-check">
+              <li><span class="tick">✓</span> Performance monitoring &amp; loss diagnosis</li>
+              <li><span class="tick">✓</span> Condition monitoring &amp; fault tickets</li>
+              <li><span class="tick">✓</span> CMMS &amp; maintenance scheduling</li>
+            </ul>
+            <a href="#/problems/operational" class="btn btn-line btn-xs">See operational problems →</a>
+          </article>
+
+          <article class="card reveal">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M7.4 15.6h3.2"/></svg>
+            </div>
+            <h3 class="rgb-text">Financial &amp; Management</h3>
+            <p>Project costs are rising, suppliers are delayed, and production forecasts are proving inaccurate.</p>
+            <ul class="list-check">
+              <li><span class="tick">✓</span> Cost &amp; budget tracking</li>
+              <li><span class="tick">✓</span> Spares &amp; supplier delay forecasting</li>
+              <li><span class="tick">✓</span> Generation &amp; production forecasting</li>
+            </ul>
+            <a href="#/problems/financial" class="btn btn-line btn-xs">See financial problems →</a>
+          </article>
+
+          <article class="card reveal">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.4" rx="7.4" ry="2.9"/><path d="M4.6 6.4v5.1c0 1.6 3.3 2.9 7.4 2.9s7.4-1.3 7.4-2.9V6.4"/><path d="M4.6 11.5v5.1c0 1.6 3.3 2.9 7.4 2.9s7.4-1.3 7.4-2.9v-5.1"/></svg>
+            </div>
+            <h3 class="rgb-text">Data &amp; Compliance</h3>
+            <p>Data is scattered, reports contain errors, and there is no evidence trail for emissions calculations.</p>
+            <ul class="list-check">
+              <li><span class="tick">✓</span> Unified data layer across systems</li>
+              <li><span class="tick">✓</span> Audit trails &amp; evidence management</li>
+              <li><span class="tick">✓</span> Carbon accounting &amp; climate risk</li>
+            </ul>
+            <a href="#/problems/data" class="btn btn-line btn-xs">See data problems →</a>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="padding-top:0">
+      <div class="container">
+        <div class="stats reveal">
+          <div class="stat"><span class="val" data-count="13">0</span><span class="lbl">Energy sectors</span></div>
+          <div class="stat"><span class="val" data-count="104">0</span><span class="lbl">Problems mapped</span></div>
+          <div class="stat"><span class="val" data-count="3">0</span><span class="lbl">Problem categories</span></div>
+          <div class="stat"><span class="val" data-count="1">0</span><span class="lbl">Connected operating layer</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="padding-top:10px">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">The platform</span>
+          <h2 class="rgb-text">From raw telemetry to operational decisions.</h2>
+          <p>Four connected stages run inside every sector workspace.</p>
+        </div>
+        <div class="card-grid">
+          <article class="card reveal"><h3 class="rgb-text">01 — Connect</h3><p>SCADA, IoT sensors, metering, maintenance logs and ERP data normalized into one layer.</p></article>
+          <article class="card reveal"><h3 class="rgb-text">02 — Monitor</h3><p>Live dashboards for production, availability, downtime and health across every asset.</p></article>
+          <article class="card reveal"><h3 class="rgb-text">03 — Predict</h3><p>Failure prediction, degradation tracking, production forecasting and maintenance prioritization.</p></article>
+          <article class="card reveal"><h3 class="rgb-text">04 — Optimize</h3><p>Scheduling, cost optimization, carbon accounting and audit-ready reporting.</p></article>
+        </div>
+        <div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap">
+          <a href="#/platform" class="btn btn-rgb">Open the platform tour</a>
+          <a href="#/problems" class="btn btn-line">Search all 104 problems</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECTORS ================= -->
+  <section class="view" data-view="sectors">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">104 problems · 13 sectors</span>
+          <h2 class="rgb-text">Choose a sector. Open its live workspace.</h2>
+          <p>Each sector opens a working console: live KPIs, a generation-vs-expected chart, a diagnostics runner and the full challenge–solution map.</p>
+        </div>
+        <div class="sector-grid" id="sectorGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECTOR WORKSPACE (dynamic) ================= -->
+  <section class="view" data-view="sector">
+    <div class="section" style="padding-top:36px">
+      <div class="container" id="sectorView"></div>
+    </div>
+  </section>
+
+  <!-- ================= PROBLEMS ================= -->
+  <section class="view" data-view="problems">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Problem explorer</span>
+          <h2 class="rgb-text">Search every challenge and solution.</h2>
+          <p>Filter by category or sector, then jump straight into the sector workspace to run the diagnostic.</p>
+        </div>
+
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+            <input type="search" id="problemSearch" placeholder="Search challenges, solutions or sectors…" autocomplete="off" />
+          </div>
+          <div class="chips" id="problemChips">
+            <button class="chip active" data-cat="all">All 104</button>
+            <button class="chip" data-cat="operational">Operational</button>
+            <button class="chip" data-cat="financial">Financial</button>
+            <button class="chip" data-cat="data">Data &amp; Compliance</button>
+          </div>
+        </div>
+
+        <p class="result-count" id="problemCount"></p>
+        <div id="problemResults"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PLATFORM ================= -->
+  <section class="view" data-view="platform">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Platform tour</span>
+          <h2 class="rgb-text">Four stages. Tap one to inspect it.</h2>
+          <p>The same pipeline powers every sector workspace — from ingestion to decision.</p>
+        </div>
+
+        <div class="step-nav" id="stepNav">
+          <button class="step-btn active" data-step="0"><div class="n">STAGE 01</div><div class="t">Connect</div></button>
+          <button class="step-btn" data-step="1"><div class="n">STAGE 02</div><div class="t">Monitor</div></button>
+          <button class="step-btn" data-step="2"><div class="n">STAGE 03</div><div class="t">Predict</div></button>
+          <button class="step-btn" data-step="3"><div class="n">STAGE 04</div><div class="t">Optimize</div></button>
+        </div>
+
+        <div class="step-panel" id="stepPanel"></div>
+
+        <div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap">
+          <a href="#/sectors" class="btn btn-rgb">Open a live sector workspace</a>
+          <a href="#/demo" class="btn btn-line">Book a walkthrough</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DEMO ================= -->
+  <section class="view" data-view="demo">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Request a demo</span>
+          <h2 class="rgb-text">Book a tailored walkthrough.</h2>
+          <p>Pick a sector and a slot. You'll get a working session on your own asset data.</p>
+        </div>
+        <div class="form-card wide reveal" id="demoCard">
+          <form id="demoForm" novalidate>
+            <div class="field-row">
+              <div class="field">
+                <label for="dName">Full name</label>
+                <input id="dName" name="name" type="text" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label for="dEmail">Work email</label>
+                <input id="dEmail" name="email" type="email" placeholder="you@company.com" required />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="dCompany">Company</label>
+                <input id="dCompany" name="company" type="text" placeholder="Company name" required />
+              </div>
+              <div class="field">
+                <label for="dSector">Sector</label>
+                <select id="dSector" name="sector" required>
+                  <option value="" selected disabled>Select a sector</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="dDate">Preferred date</label>
+                <input id="dDate" name="date" type="date" required />
+              </div>
+              <div class="field">
+                <label for="dTime">Preferred time</label>
+                <select id="dTime" name="time" required>
+                  <option value="" selected disabled>Select a slot</option>
+                  <option>09:00 – 10:00</option>
+                  <option>11:00 – 12:00</option>
+                  <option>14:00 – 15:00</option>
+                  <option>16:00 – 17:00</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="dMessage">What should we focus on?</label>
+              <textarea id="dMessage" name="message" placeholder="Assets, sites, reporting goals…"></textarea>
+            </div>
+            <button class="btn btn-rgb btn-block" type="submit">Confirm demo request</button>
+            <p class="form-msg" id="demoMsg" role="status"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CONTACT ================= -->
+  <section class="view" data-view="contact">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Contact</span>
+          <h2 class="rgb-text">Talk to the Qorino team.</h2>
+          <p>Questions, partnerships or a pilot — send a message and we'll reply within one business day.</p>
+        </div>
+        <div class="form-card wide reveal">
+          <form id="contactForm" novalidate>
+            <div class="field-row">
+              <div class="field">
+                <label for="cName">Name</label>
+                <input id="cName" name="name" type="text" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label for="cEmail">Email</label>
+                <input id="cEmail" name="email" type="email" placeholder="you@company.com" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="cSubject">Subject</label>
+              <input id="cSubject" name="subject" type="text" placeholder="What is this about?" required />
+            </div>
+            <div class="field">
+              <label for="cMessage">Message</label>
+              <textarea id="cMessage" name="message" placeholder="Tell us more…" required></textarea>
+            </div>
+            <button class="btn btn-rgb btn-block" type="submit">Send message</button>
+            <p class="form-msg" id="contactMsg" role="status"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LOGIN ================= -->
+  <section class="view" data-view="login">
+    <div class="container">
+      <div class="auth-shell">
+        <div class="auth-side reveal">
+          <span class="eyebrow rgb-text">Welcome back</span>
+          <h2 class="rgb-text">Sign in to your Qorino workspace.</h2>
+          <p>Access your sector consoles, saved diagnostics and demo history.</p>
+          <ul class="list-check">
+            <li><span class="tick">✓</span> Live KPIs for every sector</li>
+            <li><span class="tick">✓</span> Saved diagnostic runs</li>
+            <li><span class="tick">✓</span> Demo and support history</li>
+          </ul>
+        </div>
+        <div class="form-card reveal">
+          <form id="loginForm" novalidate>
+            <div class="field">
+              <label for="lEmail">Email</label>
+              <input id="lEmail" name="email" type="email" placeholder="you@company.com" required />
+            </div>
+            <div class="field">
+              <label for="lPass">Password</label>
+              <input id="lPass" name="password" type="password" placeholder="••••••••" minlength="6" required />
+            </div>
+            <button class="btn btn-rgb btn-block" type="submit">Log In</button>
+            <p class="form-msg" id="loginMsg" role="status"></p>
+            <p style="font-size:.82rem;margin-top:16px;text-align:center">
+              New here? <a href="#/signup" style="font-weight:700;text-decoration:underline">Create an account</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SIGNUP ================= -->
+  <section class="view" data-view="signup">
+    <div class="container">
+      <div class="auth-shell">
+        <div class="auth-side reveal">
+          <span class="eyebrow rgb-text">Create account</span>
+          <h2 class="rgb-text">Start with the sector that matters most.</h2>
+          <p>Free workspace access. No credit card. Upgrade when you're ready for production data.</p>
+          <ul class="list-check">
+            <li><span class="tick">✓</span> All 13 sector workspaces</li>
+            <li><span class="tick">✓</span> Diagnostic console with 104 checks</li>
+            <li><span class="tick">✓</span> RGB theme controls in settings</li>
+          </ul>
+        </div>
+        <div class="form-card reveal">
+          <form id="signupForm" novalidate>
+            <div class="field">
+              <label for="sName">Full name</label>
+              <input id="sName" name="name" type="text" placeholder="Your name" required />
+            </div>
+            <div class="field">
+              <label for="sEmail">Work email</label>
+              <input id="sEmail" name="email" type="email" placeholder="you@company.com" required />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="sPass">Password</label>
+                <input id="sPass" name="password" type="password" placeholder="Min 6 characters" minlength="6" required />
+              </div>
+              <div class="field">
+                <label for="sPass2">Confirm password</label>
+                <input id="sPass2" name="confirm" type="password" placeholder="Repeat password" minlength="6" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="sSector">Primary sector</label>
+              <select id="sSector" name="sector" required>
+                <option value="" selected disabled>Select a sector</option>
+              </select>
+            </div>
+            <div class="check-row">
+              <input type="checkbox" id="sTerms" required />
+              <label for="sTerms" style="margin:0;font-weight:500;font-size:.82rem">I agree to the terms of service and privacy policy.</label>
+            </div>
+            <button class="btn btn-rgb btn-block" type="submit">Create account</button>
+            <p class="form-msg" id="signupMsg" role="status"></p>
+            <p style="font-size:.82rem;margin-top:16px;text-align:center">
+              Already registered? <a href="#/login" style="font-weight:700;text-decoration:underline">Log in</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ACCOUNT ================= -->
+  <section class="view" data-view="account">
+    <div class="section">
+      <div class="container" id="accountBody"></div>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="view" data-view="settings">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Settings</span>
+          <h2 class="rgb-text">Tune the workspace to your taste.</h2>
+          <p>RGB intensity, notifications and local data — all saved on this device.</p>
+        </div>
+        <div class="form-card wide reveal">
+          <h3 class="rgb-text" style="font-size:1rem;margin-bottom:14px">RGB keyboard mode</h3>
+          <div class="opt-grid" id="rgbOptions">
+            <label class="opt active">
+              <input type="radio" name="rgbMode" value="full" checked />
+              <div><strong>Full RGB</strong><span>Fast rainbow cycling on every heading, button and label.</span></div>
+            </label>
+            <label class="opt">
+              <input type="radio" name="rgbMode" value="subtle" />
+              <div><strong>Subtle RGB</strong><span>Slower, softer palette — easier for long sessions.</span></div>
+            </label>
+            <label class="opt">
+              <input type="radio" name="rgbMode" value="off" />
+              <div><strong>Brand only</strong><span>Static Qorino green and cyan.</span></div>
+            </label>
+          </div>
+
+          <h3 class="rgb-text" style="font-size:1rem;margin:26px 0 14px">Notifications</h3>
+          <div class="switch-row">
+            <div><strong>Alert emails</strong><span>Critical asset alerts to your inbox.</span></div>
+            <button class="switch on" data-switch="alerts" aria-pressed="true"></button>
+          </div>
+          <div class="switch-row">
+            <div><strong>Weekly digest</strong><span>Summary of sector activity every Monday.</span></div>
+            <button class="switch on" data-switch="digest" aria-pressed="true"></button>
+          </div>
+          <div class="switch-row">
+            <div><strong>Product updates</strong><span>New sectors and features as they ship.</span></div>
+            <button class="switch" data-switch="product" aria-pressed="false"></button>
+          </div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px">
+            <button class="btn btn-rgb" id="saveSettings">Save settings</button>
+            <button class="btn btn-line" id="resetData">Reset local data</button>
+          </div>
+          <p class="form-msg" id="settingsMsg" role="status"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT ================= -->
+  <section class="view" data-view="about">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Company</span>
+          <h2 class="rgb-text">We build the operating layer for the energy transition.</h2>
+          <p>Qorino Energy exists because energy teams spend more time reconciling spreadsheets than operating assets. We map the problems, then wire the data so the answer is already there.</p>
+        </div>
+        <div class="card-grid">
+          <article class="card reveal"><h3 class="rgb-text">Our thesis</h3><p>104 problems across 13 sectors share the same root: fragmented data and missing evidence. Fix that once, and every sector benefits.</p></article>
+          <article class="card reveal"><h3 class="rgb-text">How we work</h3><p>Start with the narrowest high-value workflow — a diagnostic, a report, an inspection trail — then expand.</p></article>
+          <article class="card reveal"><h3 class="rgb-text">Where we are</h3><p>Building with operators, EPCs, OEMs and sustainability teams across Asia, Europe and the Middle East.</p></article>
+        </div>
+        <div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap">
+          <a href="#/careers" class="btn btn-rgb">See open roles</a>
+          <a href="#/contact" class="btn btn-line">Contact us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CAREERS ================= -->
+  <section class="view" data-view="careers">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Careers</span>
+          <h2 class="rgb-text">Open roles.</h2>
+          <p>We hire operators, engineers and builders who like problems with physical consequences.</p>
+        </div>
+        <div id="rolesList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PRESS ================= -->
+  <section class="view" data-view="press">
+    <div class="section">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow rgb-text">Press</span>
+          <h2 class="rgb-text">Newsroom.</h2>
+          <p>Announcements, product notes and sector research from Qorino Energy.</p>
+        </div>
+        <div class="card-grid">
+          <article class="card reveal"><h3 class="rgb-text">Qorino maps 104 energy problems</h3><p>Our public problem map covers 13 sectors with a challenge–solution pair for every entry.</p><button class="btn btn-line btn-xs" data-toast="Press kit download started (demo).">Download press kit</button></article>
+          <article class="card reveal"><h3 class="rgb-text">RGB workspace released</h3><p>Full theme control, including RGB keyboard mode, ships to all workspaces.</p><button class="btn btn-line btn-xs" data-toast="You'll receive the release note by email.">Get release note</button></article>
+          <article class="card reveal"><h3 class="rgb-text">Sector brief: Hydrogen</h3><p>Electrolyzer efficiency and emissions evidence are the first two workflows we deploy.</p><a href="#/sector/hydrogen" class="btn btn-line btn-xs">Open hydrogen workspace</a></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 404 ================= -->
+  <section class="view" data-view="notfound">
+    <div class="section">
+      <div class="container" style="text-align:center;max-width:600px">
+        <h1 class="rgb-text" style="font-size:4rem;margin-bottom:10px">404</h1>
+        <p style="font-size:1rem;margin-bottom:26px">That route doesn't exist in the Qorino workspace yet.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a href="#/home" class="btn btn-rgb">Back to home</a>
+          <a href="#/sectors" class="btn btn-line">Browse sectors</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="logo" href="#/home">
+          <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M32 4.5 56 18v28L32 59.5 8 46V18Z" fill="none" stroke="url(#lgA)" stroke-width="2.1" stroke-linejoin="round" opacity=".85"/>
+            <circle cx="32" cy="32" r="14.5" fill="none" stroke="url(#lgA)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="66 25"/>
+            <path d="M42.4 42.4 51 51" stroke="url(#lgB)" stroke-width="4.2" stroke-linecap="round"/>
+            <path d="M34.6 21.5 25.8 34.4h6.1L29.4 43 38.6 29.6h-6.2Z" fill="url(#lgB)"/>
+          </svg>
+          <span class="logo-text rgb-text">QORINO<small>ENERGY</small></span>
+        </a>
+        <p>104 operational, financial and compliance problems across 13 energy sectors — solved by one connected operating layer.</p>
+      </div>
+
+      <div class="footer-col">
+        <h5>Sectors</h5>
+        <a href="#/sector/solar">Solar Power</a>
+        <a href="#/sector/wind">Wind Energy</a>
+        <a href="#/sector/hydro">Hydropower</a>
+        <a href="#/sector/battery">Battery Storage</a>
+        <a href="#/sector/grid">Transmission &amp; Distribution</a>
+        <a href="#/sectors">All 13 sectors →</a>
+      </div>
+
+      <div class="footer-col">
+        <h5>Problems</h5>
+        <a href="#/problems/operational">Operational</a>
+        <a href="#/problems/financial">Financial &amp; Management</a>
+        <a href="#/problems/data">Data &amp; Compliance</a>
+        <a href="#/problems">Search all 104</a>
+      </div>
+
+      <div class="footer-col">
+        <h5>Company</h5>
+        <a href="#/about">About</a>
+        <a href="#/careers">Careers</a>
+        <a href="#/press">Press</a>
+        <a href="#/contact">Contact</a>
+      </div>
+
+      <div class="footer-col">
+        <h5>Account</h5>
+        <a href="#/login">Log In</a>
+        <a href="#/signup">Sign Up</a>
+        <a href="#/account">My Account</a>
+        <a href="#/settings">Settings</a>
+        <a href="#/demo">Request a Demo</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© <span id="year">2025</span> Qorino Energy. All rights reserved.</span>
+      <div class="socials">
+        <button data-toast="Opening LinkedIn (demo)." aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M6 9v9M6 6v.01M10.5 18v-5.2c0-1.4 1-2.3 2.3-2.3s2.2.9 2.2 2.3V18"/></svg></button>
+        <button data-toast="Opening X (demo)." aria-label="X"><svg viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
+        <button data-toast="Opening YouTube (demo)." aria-label="YouTube"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m11 10 4 2-4 2z"/></svg></button>
+      </div>
+      <span>Built for the energy transition.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ============================================================
+   1. SECTOR DATA — 13 sectors · 104 problems
+   ============================================================ */
+const SECTORS = [
+  { id:'solar', name:'Solar Power', color:'#ffc857',
+    desc:'Utility-scale, rooftop and distributed solar assets.',
+    customers:'Solar EPCs, rooftop solar installers, solar asset owners and O&M service providers.',
+    scope:'Solar Asset Intelligence SaaS — tracks expected daily generation versus actual output and identifies potential sources of energy loss.',
+    problems:[
+      ['Panel Soiling','Cleaning Priority Analytics'],
+      ['Inverter Failure','Inverter Fault & Ticket Management'],
+      ['Production Forecast Error','Solar Generation Forecasting'],
+      ['Panel Degradation','Long-Term Performance Tracking'],
+      ['Warranty Claim Complexity','Warranty Evidence Management'],
+      ['Multiple Site Monitoring','Multi-Plant Performance Dashboard'],
+      ['Maintenance Scheduling','Solar CMMS'],
+      ['Energy Loss Diagnosis','Expected vs. Actual Generation Analytics']
+    ]},
+
+  { id:'wind', name:'Wind Energy', color:'#35c5f0',
+    desc:'Onshore and offshore wind farms.',
+    customers:'Wind farm owners, turbine OEMs and O&M providers.',
+    scope:'Start with reporting and maintenance management — SCADA and OEM data limits make deeper control harder.',
+    problems:[
+      ['Turbine Gearbox Failure','Condition Monitoring Analytics'],
+      ['Blade Inspection Delay','Inspection Workflow Platform'],
+      ['Wind Forecast Error','Generation Forecasting'],
+      ['Turbine Downtime','Downtime Root-Cause Analytics'],
+      ['Spare Parts Shortage','Parts Forecasting'],
+      ['Offshore Service Coordination','Maintenance Logistics Software'],
+      ['Turbine Performance Discrepancy','Fleet Benchmarking'],
+      ['Curtailment Loss','Curtailment Reporting & Scenario Analysis']
+    ]},
+
+  { id:'hydro', name:'Hydropower', color:'#4d9fff',
+    desc:'Run-of-river, reservoir and pumped-storage hydropower assets.',
+    customers:'Hydropower operators, engineering consultants and asset owners.',
+    scope:'Inflow forecasting, maintenance management and inspection evidence — advisory analysis only.',
+    note:'Water flow and reservoir decisions are safety-critical. Qorino supports analysis and planning only — it does not directly operate dam gates or critical control systems.',
+    problems:[
+      ['Water Inflow Uncertainty','Inflow Forecast Dashboard'],
+      ['Turbine Maintenance','Maintenance Management'],
+      ['Sedimentation','Sediment Monitoring Analytics'],
+      ['Reservoir Planning','Decision-Support Modeling'],
+      ['Equipment Reliability','Asset Health Reporting'],
+      ['Environmental Monitoring','Environmental Data Platform'],
+      ['Dam Inspection Records','Inspection & Evidence Management'],
+      ['Generation Scheduling','Hydropower Scheduling Analytics']
+    ]},
+
+  { id:'nuclear', name:'Nuclear Energy', color:'#e2e8f0',
+    desc:'Nuclear generation and qualified equipment supply chains.',
+    customers:'Nuclear equipment suppliers, engineering contractors and qualified service providers.',
+    scope:'Controlled documentation, traceability and NCR/CAPA workflows for regulated suppliers.',
+    problems:[
+      ['Engineering Document Complexity','Controlled Document Platform'],
+      ['Supplier Qualification Records','Supplier Quality Management'],
+      ['Component Traceability','Digital Traceability System'],
+      ['Maintenance Documentation','Maintenance Records Platform'],
+      ['Training & Qualification','Workforce Qualification Tracker'],
+      ['Quality Non-Conformance','NCR & CAPA Management'],
+      ['Project Schedule Coordination','Engineering Project Dashboard'],
+      ['Inspection Evidence','Audit & Inspection Records']
+    ]},
+
+  { id:'hydrogen', name:'Hydrogen', color:'#7ee787',
+    desc:'Green and blue hydrogen production and handling.',
+    customers:'Hydrogen project developers, electrolyzer manufacturers and industrial hydrogen producers.',
+    scope:'Electrolyzer efficiency, LCOH modeling and emissions evidence for project developers.',
+    problems:[
+      ['Electrolyzer Performance','Loss Efficiency Analytics'],
+      ['Hydrogen Production Cost','Levelized Cost Modeling'],
+      ['Renewable Power Variability','Production Planning Simulation'],
+      ['Equipment Maintenance','Electrolyzer Maintenance SaaS'],
+      ['Water & Electricity Accounting','Resource Consumption Dashboard'],
+      ['Emissions Certification Data','Hydrogen Emissions Evidence System'],
+      ['Project Feasibility Uncertainty','Scenario Analysis Software'],
+      ['Offtake Contract Planning','Demand & Contract Tracking']
+    ]},
+
+  { id:'battery', name:'Battery Storage', color:'#2ee6a8',
+    desc:'Utility and commercial battery energy storage systems.',
+    customers:'BESS operators, battery integrators and solar + storage developers.',
+    scope:'SOH analytics, dispatch decision support and warranty/cycle history for BESS operators.',
+    problems:[
+      ['Battery Capacity Degradation','Battery Health Analytics'],
+      ['State of Health Uncertainty','SOH Estimation'],
+      ['Storage Dispatch Planning','Dispatch Decision Support'],
+      ['Warranty Disputes','Warranty & Cycle History'],
+      ['BMS Data Fragmentation','Multi-Vendor Data Platform'],
+      ['Battery Maintenance','BESS Maintenance Management'],
+      ['Financial Performance','Storage Revenue Analytics'],
+      ['Battery Safety Event Records','Safety Event Reporting & Escalation']
+    ]},
+
+  { id:'fuelcell', name:'Fuel Cell Technology', color:'#ffa657',
+    desc:'Stationary and mobile fuel cell systems.',
+    customers:'Fuel cell OEMs, integrators and industrial fleet operators.',
+    scope:'Stack degradation trends, test data management and fleet benchmarking for OEMs.',
+    problems:[
+      ['Fuel Cell Stack Degradation','Performance Trend Analytics'],
+      ['Operating Efficiency Variation','Efficiency Reporting'],
+      ['Service Interval Planning','Maintenance Scheduling'],
+      ['Component Failure Records','Reliability Database'],
+      ['Hydrogen Consumption','Fuel Use Analytics'],
+      ['Testing Documentation','Test Data Management'],
+      ['Warranty Evaluation','Warranty Evidence Platform'],
+      ['Fleet Performance Comparison','Fuel Cell Fleet Dashboard']
+    ]},
+
+  { id:'grid', name:'Transmission & Distribution', color:'#5eead4',
+    desc:'Transmission, distribution and substation assets.',
+    customers:'Utilities, grid contractors, transformer service companies and distribution operators.',
+    scope:'Begin with asset registry, inspection management and project tracking.',
+    note:'Requires power system simulation expertise. Recommended starting scope: Asset Registry, Inspection Management and Project Tracking.',
+    problems:[
+      ['Transformer Maintenance','Transformer Asset Management'],
+      ['Line Inspection Backlog','Inspection Workflow Software'],
+      ['Grid Congestion Analysis','Network Planning Analytics'],
+      ['Equipment Failure History','Asset Reliability Database'],
+      ['Spare Transformer Planning','Critical Spares Management'],
+      ['Substation Project Delay','Project Progress Tracking'],
+      ['Power Quality Reporting','Power Quality Analytics'],
+      ['Grid Asset Documentation','GIS-linked Asset Registry']
+    ]},
+
+  { id:'wte', name:'Waste-to-Energy', color:'#ff8a5c',
+    desc:'Municipal and industrial waste-to-energy plants.',
+    customers:'Waste processing companies, WtE developers and municipality contractors.',
+    scope:'Feedstock quality, environmental records and energy-yield analytics for WtE plants.',
+    problems:[
+      ['Waste Feedstock Variation','Feedstock Quality Analytics'],
+      ['Plant Downtime','Maintenance Management'],
+      ['Waste Supply Uncertainty','Waste Logistics Planning'],
+      ['Emissions Monitoring Records','Environmental Data Platform'],
+      ['Equipment Corrosion Tracking','Inspection & Asset Health Records'],
+      ['Ash & Residue Tracking','Residue Management Software'],
+      ['Plant Performance Loss','Energy Yield Analytics'],
+      ['Project Economics','Feedstock-to-Energy Cost Model']
+    ]},
+
+  { id:'geo', name:'Geothermal', color:'#ff6b8b',
+    desc:'Geothermal generation and heat assets.',
+    customers:'Geothermal developers, engineering consultancies and drilling service providers.',
+    scope:'Resource data, well management and techno-economic scenarios for developers.',
+    problems:[
+      ['Resource Uncertainty','Geothermal Resource Data Platform'],
+      ['Well Maintenance','Well Asset Management'],
+      ['Drilling Cost Overrun','Drilling Project Analytics'],
+      ['Equipment Scaling & Corrosion','Inspection Trend Analysis'],
+      ['Reservoir Performance Uncertainty','Reservoir Data Visualization'],
+      ['Production Decline','Generation Trend Monitoring'],
+      ['Environmental Reporting','Environmental Compliance Workflow'],
+      ['Project Financing Risk','Techno-Economic Scenario Model']
+    ]},
+
+  { id:'efficiency', name:'Energy Efficiency', color:'#a3e635',
+    desc:'Industrial and building energy optimization.',
+    customers:'Garment factories, textile mills, food processing plants, commercial buildings and energy service companies.',
+    scope:'Energy cost analytics, M&V and enterprise energy management for industrial sites.',
+    problems:[
+      ['High Electricity Bills','Energy Cost Analytics'],
+      ['Compressor Energy Waste','Compressed Air Performance Dashboard'],
+      ['Inefficient Motors','Motor Efficiency Assessment Tool'],
+      ['Poor HVAC Scheduling','HVAC Energy Analytics'],
+      ['Unmeasured Savings','Measurement & Verification Software'],
+      ['Energy Audit Backlog','Digital Audit Platform'],
+      ['Peak Demand Charges','Peak Demand Forecasting'],
+      ['Multi-Factory Energy Reporting','Enterprise Energy Management']
+    ]},
+
+  { id:'climate', name:'Climate Risk', color:'#f472b6',
+    desc:'Physical climate risk and adaptation planning.',
+    customers:'Insurers, manufacturers, logistics companies, infrastructure owners and financial institutions.',
+    scope:'Asset-level exposure screening and scenario dashboards for insurers and asset owners.',
+    note:'Hazard is not the same as risk. Flood likelihood alone is not enough — risk combines asset exposure, damage potential and organizational vulnerability.',
+    problems:[
+      ['Flood Exposure','Facility Flood Risk Screening'],
+      ['Extreme Heat Risk','Heat Exposure Analytics'],
+      ['Cyclone & Storm Exposure','Asset Exposure Dashboard'],
+      ['Supply Chain Climate Risk','Supplier Location Risk Mapping'],
+      ['Physical Asset Risk','Climate Asset Risk Register'],
+      ['Scenario Reporting','Climate Scenario Dashboard'],
+      ['Climate Data Fragmentation','Climate Data Integration'],
+      ['Adaptation Investment Planning','Resilience Project Prioritization']
+    ]},
+
+  { id:'carbon', name:'Carbon Capture & Accounting', color:'#c084fc',
+    desc:'Point-source capture and corporate carbon accounting.',
+    customers:'Industrial manufacturers, exporters, sustainability consultancies and carbon capture project developers.',
+    scope:'Scope 1–3 accounting, audit-ready evidence and capture-plant KPIs.',
+    problems:[
+      ['Scope 1 Emissions Data','Direct Emissions Accounting'],
+      ['Scope 2 Electricity Emissions','Electricity Emissions Calculator'],
+      ['Scope 3 Supplier Data','Supplier Carbon Data Portal'],
+      ['Emissions Evidence','Audit-ready Evidence Management'],
+      ['Carbon Capture Performance','Capture Plant KPI Dashboard'],
+      ['Carbon Capture Cost','Cost-per-Tonne Analytics'],
+      ['Carbon Transport & Storage Records','CO₂ Chain Data Management'],
+      ['Decarbonization Planning','Abatement Scenario Modeling']
+    ]}
+];
+
+/* Assign global problem numbers + flatten */
+let RUNNING = 1;
+SECTORS.forEach(s => { s.start = RUNNING; RUNNING += s.problems.length; });
+const TOTAL_PROBLEMS = RUNNING - 1;
+const byId = id => SECTORS.find(s => s.id === id);
+
+/* Classify every problem into a category */
+function classify(challenge, solution) {
+  const t = (challenge + ' ' + solution).toLowerCase();
+  if (/cost|forecast|schedule|planning|contract|spare|financ|revenue|economic|dispatch|warranty|budget|logistic|pricing|procurement/.test(t)) return 'financial';
+  if (/evidence|document|record|report|account|audit|traceab|qualification|certif|compliance|data|monitoring|registry|documentation|test data/.test(t)) return 'data';
+  return 'operational';
+}
+
+const ALL_PROBLEMS = [];
+SECTORS.forEach(s => {
+  s.problems.forEach((p, i) => {
+    ALL_PROBLEMS.push({
+      n: s.start + i,
+      sectorId: s.id,
+      sectorName: s.name,
+      sectorColor: s.color,
+      challenge: p[0],
+      solution: p[1],
+      cat: classify(p[0], p[1])
+    });
+  });
+});
+
+/* ============================================================
+   2. ROUTER / VIEW SWITCHING
+   ============================================================ */
+const views = Array.from(document.querySelectorAll('.view'));
+const timers = [];
+function clearTimers() { timers.forEach(clearInterval); timers.length = 0; }
+
+const state = {
+  problemFilter: 'all',
+  step: 0
+};
+
+function parseHash() {
+  const h = (location.hash || '#/home').replace(/^#/, '');
+  const parts = h.split('/').filter(Boolean);
+  const head = (parts[0] || 'home').split('?')[0];
+  return { path: head, args: parts.slice(1) };
+}
+
+function render() {
+  clearTimers();
+  closeMobileNav();
+  closeUserMenu();
+
+  const { path, args } = parseHash();
+  let viewName = path;
+
+  if (viewName === 'sector') {
+    const sector = byId(args[0]);
+    if (sector) {
+      renderSectorWorkspace(sector);
+    } else {
+      viewName = 'notfound';
+    }
+  }
+
+  if (viewName === 'account' && !getUser()) {
+    showToast('Please log in to view your account.', 'warn');
+    viewName = 'login';
+  }
+  if (viewName === 'settings' && !getUser()) {
+    showToast('Please log in to change settings.', 'warn');
+    viewName = 'login';
+  }
+
+  const known = ['home','sectors','sector','problems','platform','demo','contact','login','signup','account','settings','about','careers','press','notfound'];
+  if (!known.includes(viewName)) viewName = 'notfound';
+
+  views.forEach(v => v.classList.toggle('active', v.dataset.view === viewName));
+
+  if (viewName === 'problems') renderProblems(args[0]);
+  if (viewName === 'platform') renderStep(state.step);
+  if (viewName === 'account') renderAccount();
+  if (viewName === 'settings') renderSettings();
+  if (viewName === 'careers') renderCareers();
+
+  setActiveNav(viewName);
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  revealActive();
+
+  if (viewName === 'home') animateCoverageBar();
+}
+
+function setActiveNav(name) {
+  document.querySelectorAll('#mainNav a[data-nav]').forEach(a => {
+    a.classList.toggle('active', a.dataset.nav === name);
+  });
+}
+
+/* Reveal animation per active view */
+function revealActive() {
+  const active = document.querySelector('.view.active');
+  if (!active) return;
+  const els = active.querySelectorAll('.reveal');
+  els.forEach((el, i) => {
+    el.classList.remove('in');
+    setTimeout(() => el.classList.add('in'), 40 + Math.min(i, 14) * 55);
+  });
+}
+
+/* Coverage bar on home */
+function animateCoverageBar() {
+  const bar = document.getElementById('coverageBar');
+  if (!bar) return;
+  bar.innerHTML = SECTORS.map(s =>
+    `<i class="seg" style="background:${s.color};transition-delay:${SECTORS.indexOf(s) * 35}ms"></i>`
+  ).join('');
+  requestAnimationFrame(() => setTimeout(() => bar.classList.add('ready'), 120));
+}
+
+/* ============================================================
+   3. TOAST
+   ============================================================ */
+const toastWrap = document.getElementById('toastWrap');
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  if (type === 'warn') t.style.borderColor = 'rgba(255,159,28,.5)';
+  toastWrap.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('out');
+    setTimeout(() => t.remove(), 320);
+  }, 3600);
+}
+
+/* Global handler for [data-toast] */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-toast]');
+  if (btn) {
+    e.preventDefault();
+    showToast(btn.getAttribute('data-toast'));
+  }
+});
+
+/* ============================================================
+   4. AUTH
+   ============================================================ */
+const LS_USER = 'qorino:user';
+const LS_SETTINGS = 'qorino:settings';
+const LS_DEMOS = 'qorino:demos';
+
+function getUser() {
+  try { return JSON.parse(localStorage.getItem(LS_USER) || 'null'); } catch (e) { return null; }
+}
+function setUser(u) {
+  localStorage.setItem(LS_USER, JSON.stringify(u));
+  renderAuth();
+}
+function clearUser() {
+  localStorage.removeItem(LS_USER);
+  renderAuth();
+}
+
+function initials(name) {
+  const parts = (name || 'Q E').trim().split(/\s+/);
+  return ((parts[0] || 'Q')[0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+
+function renderAuth() {
+  const area = document.getElementById('authArea');
+  const navAuth = document.getElementById('navAuth');
+  const u = getUser();
+
+  if (!u) {
+    area.innerHTML =
+      `<a href="#/login" class="btn btn-line btn-sm">Log In</a>` +
+      `<a href="#/signup" class="btn btn-rgb btn-sm">Sign Up</a>`;
+    navAuth.innerHTML =
+      `<a href="#/login">Log In</a>` +
+      `<a href="#/signup">Sign Up</a>`;
+  } else {
+    const ini = initials(u.name);
+    area.innerHTML =
+      `<button class="user-chip" id="userChip" aria-haspopup="true" aria-expanded="false">
+         <span class="avatar">${ini}</span>
+         <span class="uname">${escapeHtml(u.name.split(' ')[0])}</span>
+         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+       </button>
+       <div class="user-menu" id="userMenu">
+         <a href="#/account">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.6 20c.9-3.4 3.9-5.2 7.4-5.2s6.5 1.8 7.4 5.2"/></svg>
+           Account
+         </a>
+         <a href="#/settings">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.1-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2.1 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.1 1.2L10 21h4l.5-2.6a7 7 0 0 0 2.1-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg>
+           Settings
+         </a>
+         <div class="sep"></div>
+         <button type="button" data-logout>
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 5h4v14h-4"/><path d="M10 8l-4 4 4 4M6 12h9"/></svg>
+           Sign Out
+         </button>
+       </div>`;
+    navAuth.innerHTML =
+      `<a href="#/account">Account</a>` +
+      `<a href="#/settings">Settings</a>` +
+      `<button type="button" data-logout style="text-align:left;background:none;border:none;padding:13px 12px;font-size:.95rem;color:inherit;cursor:pointer">Sign Out</button>`;
+
+    const chip = document.getElementById('userChip');
+    const menu = document.getElementById('userMenu');
+    chip.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const open = menu.classList.toggle('open');
+      chip.classList.toggle('open', open);
+      chip.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
+  navAuth.style.display = 'none';
+}
+document.addEventListener('click', e => {
+  const out = e.target.closest('[data-logout]');
+  if (out) {
+    clearUser();
+    showToast('Signed out successfully.');
+    location.hash = '#/home';
+  }
+  if (!e.target.closest('#userChip') && !e.target.closest('#userMenu')) closeUserMenu();
+});
+function closeUserMenu() {
+  const m = document.getElementById('userMenu');
+  const c = document.getElementById('userChip');
+  if (m) m.classList.remove('open');
+  if (c) { c.classList.remove('open'); c.setAttribute('aria-expanded', 'false'); }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   5. SETTINGS
+   ============================================================ */
+function getSettings() {
+  try {
+    return Object.assign({ rgb: 'full', alerts: true, digest: true, product: false },
+      JSON.parse(localStorage.getItem(LS_SETTINGS) || '{}'));
+  } catch (e) { return { rgb: 'full', alerts: true, digest: true, product: false }; }
+}
+function applySettings() {
+  const s = getSettings();
+  document.body.classList.remove('rgb-full', 'rgb-subtle', 'rgb-off');
+  document.body.classList.add('rgb-' + s.rgb);
+}
+function saveSettings(patch) {
+  const s = Object.assign(getSettings(), patch);
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(s));
+  applySettings();
+  return s;
+}
+
+/* ============================================================
+   6. HEADER / MOBILE NAV
+   ============================================================ */
+const header = document.getElementById('siteHeader');
+function onScroll() { header.classList.toggle('scrolled', window.scrollY > 12); }
+onScroll();
+window.addEventListener('scroll', onScroll, { passive: true });
+
+const burger = document.getElementById('burger');
+const mainNav = document.getElementById('mainNav');
+burger.addEventListener('click', () => {
+  const open = mainNav.classList.toggle('open');
+  burger.classList.toggle('open', open);
+  burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+function closeMobileNav() {
+  mainNav.classList.remove('open');
+  burger.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+}
+mainNav.addEventListener('click', e => { if (e.target.tagName === 'A') closeMobileNav(); });
+
+/* ============================================================
+   7. HOME COUNTERS
+   ============================================================ */
+function animateCounters() {
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const target = parseFloat(el.getAttribute('data-count'));
+    const dur = 1400;
+    const start = performance.now();
+    function step(now) {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* ============================================================
+   8. SECTORS PAGE
+   ============================================================ */
+function renderSectorGrid() {
+  const grid = document.getElementById('sectorGrid');
+  grid.innerHTML = SECTORS.map(s => `
+    <a class="sector-card reveal" href="#/sector/${s.id}">
+      <div class="sector-top">
+        <span class="sector-dot" style="background:${s.color};color:${s.color}"></span>
+        <span class="sector-name">${s.name}</span>
+        <span class="sector-count">${s.problems.length}</span>
+      </div>
+      <p>${s.desc}</p>
+      <span class="sector-open">
+        Open workspace
+        <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </span>
+    </a>
+  `).join('');
+}
+
+/* ============================================================
+   9. SECTOR WORKSPACE (live console)
+   ============================================================ */
+let sectorChartTimer = null;
+
+function seedOf(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 9973;
+  return h;
+}
+
+function renderSectorWorkspace(s) {
+  const root = document.getElementById('sectorView');
+  const seed = seedOf(s.id);
+
+  const kpis = [
+    { label: 'Asset availability', base: 91 + (seed % 6), unit: '%', dec: 1 },
+    { label: 'Output vs target',   base: 86 + (seed % 10), unit: '%', dec: 1 },
+    { label: 'Open alerts',        base: 2 + (seed % 7),  unit: '',  dec: 0 },
+    { label: 'O&M cost index',     base: 62 + (seed % 24), unit: '', dec: 0 }
+  ];
+
+  root.innerHTML = `
+    <div class="crumbs">
+      <a href="#/home">Home</a><span>/</span>
+      <a href="#/sectors">Sectors</a><span>/</span>
+      <span style="color:var(--text);font-weight:700">${s.name}</span>
+    </div>
+
+    <div class="workspace-head">
+      <div>
+        <div class="workspace-title">
+          <span class="sector-dot" style="background:${s.color};color:${s.color};width:16px;height:16px"></span>
+          <h1 class="rgb-text">${s.name} Workspace</h1>
+        </div>
+        <p>${s.desc} ${s.problems.length} mapped problems. Run diagnostics, inspect the live chart, then open the full solution map.</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="#/sectors" class="btn btn-line btn-sm">← All sectors</a>
+        <a href="#/demo" class="btn btn-rgb btn-sm">Request a pilot</a>
+      </div>
+    </div>
+
+    <div class="kpi-row" id="kpiRow">
+      ${kpis.map((k, i) => `
+        <div class="kpi">
+          <span class="kpi-label">${k.label}</span>
+          <span class="kpi-value" data-kpi="${i}">0</span>
+          <span class="kpi-delta" data-delta="${i}">—</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        Generation vs expected — last 40 intervals
+        <span class="live"><i></i> Live</span>
+      </div>
+      <svg class="live-chart" viewBox="0 0 300 90" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="${s.color}" stop-opacity=".38"/>
+            <stop offset="1" stop-color="${s.color}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path id="chartArea" d="" fill="url(#chartFill)"/>
+        <polyline id="chartExp" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <polyline id="chartAct" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <div class="chart-legend">
+        <div><span class="ln" style="background:${s.color}"></span> Actual generation</div>
+        <div><span class="ln" style="background:rgba(255,255,255,.28)"></span> Expected generation</div>
+        <div style="margin-left:auto" id="chartMeta">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        Diagnostics console — ${s.problems.length} checks
+        <span class="live"><i></i> Ready</span>
+      </div>
+      <div class="diag-list" id="diagList">
+        ${s.problems.map((p, i) => `
+          <div class="diag-row" data-row="${i}">
+            <div class="diag-main">
+              <span class="diag-idx">${s.start + i}</span>
+              <div>
+                <strong>${p[0]}</strong>
+                <span class="diag-sol">${p[1]}</span>
+              </div>
+              <div class="diag-right">
+                <span class="diag-status" data-state="idle">Idle</span>
+                <button class="btn btn-rgb btn-xs" data-run="${i}">Run</button>
+              </div>
+            </div>
+            <div class="diag-output" data-output hidden></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${s.note ? `
+      <div class="note-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.2"/><path d="M12 11v5.4M12 7.7v.2"/></svg>
+        <p>${s.note}</p>
+      </div>` : ''}
+
+    <div class="meta-grid">
+      <div class="meta-box"><span>Potential customers</span><p>${s.customers}</p></div>
+      <div class="meta-box"><span>Initial scope</span><p>${s.scope}</p></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Full problem–solution map</div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>#</th><th>Company challenge</th><th>Qorino solution</th></tr></thead>
+          <tbody>
+            ${s.problems.map((p, i) => `
+              <tr>
+                <td class="num">${s.start + i}</td>
+                <td class="challenge">${p[0]}</td>
+                <td class="solution">${p[1]}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  /* --- KPI live values --- */
+  const kpiEls = root.querySelectorAll('[data-kpi]');
+  const deltaEls = root.querySelectorAll('[data-delta]');
+  const values = kpis.map(k => k.base);
+
+  function paintKPIs() {
+    values.forEach((v, i) => {
+      const k = kpis[i];
+      kpiEls[i].textContent = v.toFixed(k.dec) + k.unit;
+      const d = (Math.random() * 2 - 0.9);
+      deltaEls[i].textContent = (d >= 0 ? '▲ +' : '▼ ') + Math.abs(d).toFixed(1) + (i < 2 ? ' pts' : '');
+      deltaEls[i].style.color = d >= 0 ? '#7ff0cc' : '#ffb191';
+    });
+  }
+  paintKPIs();
+
+  const kpiTimer = setInterval(() => {
+    for (let i = 0; i < values.length; i++) {
+      const k = kpis[i];
+      let v = values[i] + (Math.random() - 0.5) * (i < 2 ? 0.9 : 1.4);
+      if (i < 2) v = Math.max(78, Math.min(99.5, v));
+      else v = Math.max(0, Math.min(30, v));
+      values[i] = v;
+    }
+    paintKPIs();
+  }, 2600);
+  timers.push(kpiTimer);
+
+  /* --- Live chart --- */
+  const N = 40;
+  let actual = Array.from({ length: N }, (_, i) =>
+    0.52 + 0.28 * Math.sin(i / 5.2 + seed) + Math.random() * 0.1
+  );
+  const expected = Array.from({ length: N }, (_, i) =>
+    0.55 + 0.29 * Math.sin(i / 5.2 + seed)
+  );
+
+  const toPoints = arr => arr.map((v, i) =>
+    `${(i / (N - 1) * 300).toFixed(1)},${(85 - Math.max(0, Math.min(1, v)) * 72).toFixed(1)}`
+  ).join(' ');
+
+  const areaEl = root.querySelector('#chartArea');
+  const expEl = root.querySelector('#chartExp');
+  const actEl = root.querySelector('#chartAct');
+  const metaEl = root.querySelector('#chartMeta');
+
+  function paintChart() {
+    actEl.setAttribute('points', toPoints(actual));
+    expEl.setAttribute('points', toPoints(expected));
+    const pts = actual.map((v, i) => {
+      const x = (i / (N - 1) * 300).toFixed(1);
+      const y = (85 - Math.max(0, Math.min(1, v)) * 72).toFixed(1);
+      return `${x},${y}`;
+    });
+    areaEl.setAttribute('d', `M0,90 L${pts.join(' L')} L300,90 Z`);
+
+    const avg = actual.reduce((a, b) => a + b, 0) / N;
+    const delta = ((avg - 0.55) * 100).toFixed(1);
+    metaEl.textContent = `Avg ${(avg * 100).toFixed(1)}% · ${delta >= 0 ? '+' : ''}${delta}% vs expected`;
+  }
+  paintChart();
+
+  const chartTimer = setInterval(() => {
+    actual.shift();
+    actual.push(0.52 + 0.28 * Math.sin(Date.now() / 9000 + seed) + Math.random() * 0.12);
+    paintChart();
+  }, 1700);
+  timers.push(chartTimer);
+
+  /* --- Diagnostics runner --- */
+  root.querySelector('#diagList').addEventListener('click', e => {
+    const btn = e.target.closest('[data-run]');
+    if (!btn) return;
+    const idx = +btn.getAttribute('data-run');
+    const row = root.querySelector(`[data-row="${idx}"]`);
+    const status = row.querySelector('[data-status]');
+    const out = row.querySelector('[data-output]');
+    const label = s.problems[idx][1];
+
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+    status.textContent = 'Analyzing';
+    status.setAttribute('data-state', 'run');
+    out.hidden = true;
+
+    const delay = 700 + Math.random() * 900;
+    setTimeout(() => {
+      const flagged = 1 + Math.floor(Math.random() * 4);
+      const isWarn = Math.random() > 0.68;
+      status.textContent = isWarn ? 'Attention' : 'Resolved';
+      status.setAttribute('data-state', isWarn ? 'warn' : 'ok');
+      out.hidden = false;
+      out.innerHTML = isWarn
+        ? `<b>${label}</b> completed — ${flagged} assets exceeded threshold. A priority work order has been drafted and assigned to the O&M queue.`
+        : `<b>${label}</b> completed — ${flagged} assets reviewed, all within operating envelope. Evidence record written to the audit trail.`;
+      btn.disabled = false;
+      btn.textContent = 'Run again';
+      showToast(`${s.name}: ${label} finished.`);
+    }, delay);
+  });
+}
+
+/* ============================================================
+   10. PROBLEMS PAGE
+   ============================================================ */
+function renderProblems(catArg) {
+  if (catArg && ['operational', 'financial', 'data', 'all'].includes(catArg)) {
+    state.problemFilter = catArg;
+  }
+  document.querySelectorAll('#problemChips .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === state.problemFilter);
+  });
+  applyProblemFilter();
+}
+
+function applyProblemFilter() {
+  const q = (document.getElementById('problemSearch').value || '').trim().toLowerCase();
+  const cat = state.problemFilter;
+
+  const list = ALL_PROBLEMS.filter(p => {
+    if (cat !== 'all' && p.cat !== cat) return false;
+    if (!q) return true;
+    return (p.challenge + ' ' + p.solution + ' ' + p.sectorName).toLowerCase().includes(q);
+  });
+
+  const count = document.getElementById('problemCount');
+  count.textContent = `${list.length} problem${list.length === 1 ? '' : 's'} found` +
+    (cat !== 'all' ? ` in ${cat === 'data' ? 'Data & Compliance' : cat[0].toUpperCase() + cat.slice(1)}` : '');
+
+  const res = document.getElementById('problemResults');
+  if (!list.length) {
+    res.innerHTML = `<div class="empty-state">No matches. Try a different keyword or clear the filter.</div>`;
+    return;
+  }
+
+  const catLabel = { operational: 'Operational', financial: 'Financial', data: 'Data' };
+  res.innerHTML = list.map(p => `
+    <div class="prob-row">
+      <span class="prob-sector" style="color:${p.sectorColor}">
+        <span style="width:7px;height:7px;border-radius:50%;background:${p.sectorColor};display:inline-block"></span>
+        ${p.sectorName}
+      </span>
+      <div class="prob-body">
+        <strong>${p.challenge}</strong>
+        <span class="sol">${p.solution}</span>
+      </div>
+      <span class="prob-cat ${p.cat === 'operational' ? 'op' : p.cat === 'financial' ? 'fin' : 'data'}">${catLabel[p.cat]}</span>
+      <button class="prob-go" data-go="${p.sectorId}">Open →</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('problemChips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  state.problemFilter = chip.dataset.cat;
+  document.querySelectorAll('#problemChips .chip').forEach(c => c.classList.toggle('active', c === chip));
+  history.replaceState(null, '', '#/problems/' + state.problemFilter);
+  applyProblemFilter();
+});
+
+document.getElementById('problemSearch').addEventListener('input', applyProblemFilter);
+
+document.getElementById('problemResults').addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go) location.hash = '#/sector/' + go.getAttribute('data-go');
+});
+
+/* ============================================================
+   11. PLATFORM STEPPER
+   ============================================================ */
+const STEPS = [
+  {
+    n: 'STAGE 01', t: 'Connect',
+    title: 'Unified data ingestion',
+    body: 'SCADA, IoT sensors, metering, maintenance logs and ERP records are normalized into one shared data layer. Duplicate readings are reconciled, time zones aligned, and every value keeps its source reference.',
+    tags: ['SCADA & IoT connectors', 'Metering & billing data', 'Maintenance logs', 'ERP & procurement', 'Source-of-truth registry']
+  },
+  {
+    n: 'STAGE 02', t: 'Monitor',
+    title: 'Real-time asset visibility',
+    body: 'Live dashboards for production, availability, downtime and health — by asset, site, fleet and portfolio. Any deviation from expected output is surfaced immediately with a likely cause.',
+    tags: ['Expected vs actual', 'Availability & downtime', 'Alert queues', 'Fleet benchmarking', 'Multi-site dashboard']
+  },
+  {
+    n: 'STAGE 03', t: 'Predict',
+    title: 'Reliability & forecasting',
+    body: 'Failure prediction, degradation tracking, production forecasting and maintenance prioritization. Models are tuned per asset class — a turbine gearbox and a battery stack do not fail the same way.',
+    tags: ['Condition monitoring', 'Degradation curves', 'Generation forecasting', 'Parts forecasting', 'Work-order prioritization']
+  },
+  {
+    n: 'STAGE 04', t: 'Optimize',
+    title: 'Decision intelligence',
+    body: 'Scheduling, cost optimization, carbon accounting and audit-ready reporting. Every decision leaves an evidence trail so finance, operations and sustainability teams work from the same numbers.',
+    tags: ['Energy scheduling', 'Cost optimization', 'Carbon accounting', 'Emissions evidence', 'Climate scenario reporting']
+  }
+];
+
+function renderStep(i) {
+  state.step = i;
+  const nav = document.getElementById('stepNav');
+  nav.querySelectorAll('.step-btn').forEach((b, idx) => b.classList.toggle('active', idx === i));
+  const s = STEPS[i];
+  document.getElementById('stepPanel').innerHTML = `
+    <div style="font-size:.7rem;font-weight:800;letter-spacing:.14em;margin-bottom:10px" class="rgb-text">${s.n}</div>
+    <h3 class="rgb-text">${s.title}</h3>
+    <p>${s.body}</p>
+    <div class="step-tags">${s.tags.map(t => `<span>${t}</span>`).join('')}</div>
+  `;
+}
+
+document.getElementById('stepNav').addEventListener('click', e => {
+  const b = e.target.closest('[data-step]');
+  if (b) renderStep(+b.dataset.step);
+});
+
+/* ============================================================
+   12. CAREERS
+   ============================================================ */
+const ROLES = [
+  { t: 'Senior Power Systems Engineer', l: 'Remote · Full-time', d: 'Grid modelling, congestion analysis and asset reliability for T&D workspaces.' },
+  { t: 'Renewables Data Engineer', l: 'Hybrid · Full-time', d: 'SCADA pipelines, time-series storage and expected-vs-actual analytics.' },
+  { t: 'Product Designer — Workspaces', l: 'Remote · Full-time', d: 'Design the live consoles operators actually use at 3am.' },
+  { t: 'Carbon Accounting Specialist', l: 'Hybrid · Contract', d: 'Scope 1–3 methodology, evidence trails and audit-ready reporting.' }
+];
+function renderCareers() {
+  document.getElementById('rolesList').innerHTML = ROLES.map(r => `
+    <div class="prob-row">
+      <div class="prob-body">
+        <strong>${r.t}</strong>
+        <span class="sol">${r.l}</span>
+        <p style="font-size:.82rem;margin-top:6px">${r.d}</p>
+      </div>
+      <button class="prob-go" data-toast="Application started for ${r.t} (demo).">Apply →</button>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   13. ACCOUNT
+   ============================================================ */
+function renderAccount() {
+  const u = getUser();
+  if (!u) return;
+  const demos = getDemos();
+  const body = document.getElementById('accountBody');
+
+  body.innerHTML = `
+    <div class="crumbs">
+      <a href="#/home">Home</a><span>/</span><span style="color:var(--text);font-weight:700">Account</span>
+    </div>
+
+    <div class="profile-head">
+      <div class="profile-avatar">${initials(u.name)}</div>
+      <div style="flex:1;min-width:200px">
+        <h2 class="rgb-text">${escapeHtml(u.name)}</h2>
+        <p>${escapeHtml(u.email)} · Member since ${new Date(u.createdAt).toLocaleDateString()}</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="#/settings" class="btn btn-line btn-sm">Settings</a>
+        <button class="btn btn-rgb btn-sm" data-logout>Sign Out</button>
+      </div>
+    </div>
+
+    <div class="stats" style="margin-bottom:24px">
+      <div class="stat"><span class="val">${SECTORS.length}</span><span class="lbl">Sectors available</span></div>
+      <div class="stat"><span class="val">${TOTAL_PROBLEMS}</span><span class="lbl">Diagnostics</span></div>
+      <div class="stat"><span class="val">${demos.length}</span><span class="lbl">Demo requests</span></div>
+      <div class="stat"><span class="val">${u.sector ? byId(u.sector) ? byId(u.sector).name.split(' ')[0] : 'All' : 'All'}</span><span class="lbl">Primary sector</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Recent demo requests</div>
+      ${demos.length ? demos.slice().reverse().map(d => `
+        <div class="prob-row">
+          <div class="prob-body">
+            <strong>${escapeHtml(d.sector)} — ${escapeHtml(d.date)} at ${escapeHtml(d.time)}</strong>
+            <span class="sol">Ref ${escapeHtml(d.ref)}</span>
+          </div>
+          <span class="prob-cat fin">Confirmed</span>
+        </div>
+      `).join('') : `<p style="font-size:.88rem">No demo requests yet. <a href="#/demo" style="text-decoration:underline;font-weight:700">Book one →</a></p>`}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Jump back in</div>
+      <div class="chips">
+        ${SECTORS.slice(0, 8).map(s => `<a class="chip" href="#/sector/${s.id}">${s.name}</a>`).join('')}
+        <a class="chip" href="#/sectors">All 13 →</a>
+      </div>
+    </div>
+  `;
+}
+
+function getDemos() {
+  try { return JSON.parse(localStorage.getItem(LS_DEMOS) || '[]'); } catch (e) { return []; }
+}
+
+/* ============================================================
+   14. SETTINGS VIEW
+   ============================================================ */
+function renderSettings() {
+  const s = getSettings();
+  document.querySelectorAll('input[name="rgbMode"]').forEach(r => {
+    r.checked = r.value === s.rgb;
+    r.closest('.opt').classList.toggle('active', r.checked);
+  });
+  document.querySelectorAll('[data-switch]').forEach(sw => {
+    const on = !!s[sw.dataset.switch];
+    sw.classList.toggle('on', on);
+    sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+document.getElementById('rgbOptions').addEventListener('change', e => {
+  if (e.target.name !== 'rgbMode') return;
+  document.querySelectorAll('#rgbOptions .opt').forEach(o => {
+    o.classList.toggle('active', o.querySelector('input').checked);
+  });
+  saveSettings({ rgb: e.target.value });
+  showToast('RGB mode updated.');
+});
+
+document.querySelectorAll('[data-switch]').forEach(sw => {
+  sw.addEventListener('click', () => {
+    const on = !sw.classList.contains('on');
+    sw.classList.toggle('on', on);
+    sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+    saveSettings({ [sw.dataset.switch]: on });
+  });
+});
+
+document.getElementById('saveSettings').addEventListener('click', () => {
+  saveSettings({});
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = '✓ Settings saved to this device.';
+  msg.className = 'form-msg ok';
+  showToast('Settings saved.');
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+});
+
+document.getElementById('resetData').addEventListener('click', () => {
+  if (!confirm('Reset local demo data and settings on this device?')) return;
+  localStorage.removeItem(LS_SETTINGS);
+  localStorage.removeItem(LS_DEMOS);
+  applySettings();
+  renderSettings();
+  showToast('Local data reset.');
+});
+
+/* ============================================================
+   15. FORMS
+   ============================================================ */
+function fillSectorSelects() {
+  const opts = SECTORS.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  ['dSector', 'sSector'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.insertAdjacentHTML('beforeend', opts);
+  });
+}
+fillSectorSelects();
+
+function setMsg(id, text, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'form-msg ' + (ok ? 'ok' : 'err');
+}
+
+/* --- DEMO --- */
+document.getElementById('demoForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.checkValidity()) { f.reportValidity(); setMsg('demoMsg', 'Please complete all required fields.', false); return; }
+
+  const ref = 'QE-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const entry = {
+    ref,
+    name: f.name.value.trim(),
+    email: f.email.value.trim(),
+    company: f.company.value.trim(),
+    sector: f.sector.options[f.sector.selectedIndex].text,
+    date: f.date.value,
+    time: f.time.value,
+    message: f.message.value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  const demos = getDemos();
+  demos.push(entry);
+  localStorage.setItem(LS_DEMOS, JSON.stringify(demos));
+
+  document.getElementById('demoCard').innerHTML = `
+    <div class="success-box">
+      <div class="success-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3 class="rgb-text">Demo request confirmed</h3>
+      <p>We'll email <strong>${escapeHtml(entry.email)}</strong> to confirm your ${escapeHtml(entry.sector)} walkthrough on ${escapeHtml(entry.date)} at ${escapeHtml(entry.time)}.</p>
+      <div class="ref-code">${ref}</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <a href="#/account" class="btn btn-rgb btn-sm">View in account</a>
+        <a href="#/sectors" class="btn btn-line btn-sm">Explore sectors</a>
+      </div>
+    </div>
+  `;
+  showToast('Demo request saved — ref ' + ref);
+});
+
+/* --- CONTACT --- */
+document.getElementById('contactForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.checkValidity()) { f.reportValidity(); setMsg('contactMsg', 'Please complete all required fields.', false); return; }
+  setMsg('contactMsg', '✓ Message sent. We reply within one business day.', true);
+  showToast('Message sent to Qorino team.');
+  f.reset();
+  setTimeout(() => setMsg('contactMsg', '', true), 5000);
+});
+
+/* --- LOGIN --- */
+document.getElementById('loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.checkValidity()) { f.reportValidity(); setMsg('loginMsg', 'Enter a valid email and a password of 6+ characters.', false); return; }
+  const email = f.email.value.trim();
+  const name = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  setUser({ name, email, sector: 'solar', createdAt: new Date().toISOString() });
+  setMsg('loginMsg', '', true);
+  showToast('Welcome back, ' + name.split(' ')[0] + '.');
+  location.hash = '#/account';
+});
+
+/* --- SIGNUP --- */
+document.getElementById('signupForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.checkValidity()) { f.reportValidity(); setMsg('signupMsg', 'Please complete all fields and accept the terms.', false); return; }
+  if (f.password.value !== f.confirm.value) { setMsg('signupMsg', 'Passwords do not match.', false); return; }
+  if (!f.sector.value) { setMsg('signupMsg', 'Choose a primary sector.', false); return; }
+
+  setUser({
+    name: f.name.value.trim(),
+    email: f.email.value.trim(),
+    sector: f.sector.value,
+    createdAt: new Date().toISOString()
+  });
+  setMsg('signupMsg', '', true);
+  showToast('Account created — welcome to Qorino.');
+  location.hash = '#/account';
+});
+
+/* ============================================================
+   16. BACKGROUND CANVAS (particles + constellation)
+   ============================================================ */
+(function initCanvas() {
+  const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { canvas.style.display = 'none'; return; }
+  const ctx = canvas.getContext('2d');
+  let w = 0, h = 0, pts = [], raf = null;
+
+  const COLORS = ['#2ee6a8', '#35c5f0', '#a855f7', '#ffc857', '#ff2d75'];
+
+  function resize() {
+    w = canvas.width = window.innerWidth * Math.min(window.devicePixelRatio || 1, 2);
+    h = canvas.height = window.innerHeight * Math.min(window.devicePixelRatio || 1, 2);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    build();
+  }
+
+  function build() {
+    const count = Math.min(90, Math.max(28, Math.floor(window.innerWidth / 18)));
+    pts = Array.from({ length: count }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.25 * (window.devicePixelRatio || 1),
+      vy: (Math.random() - 0.5) * 0.25 * (window.devicePixelRatio || 1),
+      r: (Math.random() * 1.5 + 0.6) * (window.devicePixelRatio || 1),
+      c: COLORS[Math.floor(Math.random() * COLORS.length)]
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    // Links
+    const maxDist = 150 * (window.devicePixelRatio || 1);
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x;
+        const dy = pts[i].y - pts[j].y;
+        const d = Math.hypot(dx, dy);
+        if (d < maxDist) {
+          const a = (1 - d / maxDist) * 0.16;
+          ctx.strokeStyle = `rgba(53,197,240,${a})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Dots
+    for (const p of pts) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.c;
+      ctx.globalAlpha = 0.55;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  resize();
+  window.addEventListener('resize', () => { cancelAnimationFrame(raf); resize(); draw(); });
+  draw();
+})();
+
+/* ============================================================
+   17. BOOT
+   ============================================================ */
+applySettings();
+renderAuth();
+renderSectorGrid();
+renderStep(0);
+animateCounters();
+document.getElementById('year').textContent = new Date().getFullYear();
+
+window.addEventListener('hashchange', render);
+
+if (!location.hash) {
+  history.replaceState(null, '', '#/home');
+}
+render();
+
+/* Ensure reveal fires for the first view */
+setTimeout(revealActive, 120);
+
+/* Refresh counters when home becomes active */
+const homeObserver = new MutationObserver(() => {
+  const home = document.querySelector('.view[data-view="home"]');
+  if (home && home.classList.contains('active')) animateCounters();
+});
+homeObserver.observe(document.getElementById('app'), { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+})();
+</script>
+</body>
+</html>
